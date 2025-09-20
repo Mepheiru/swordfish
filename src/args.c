@@ -1,4 +1,5 @@
 #include "args.h"
+#include "main.h"
 #include <ctype.h>
 #include <getopt.h>
 #include <limits.h>
@@ -12,27 +13,19 @@
 #define NSIG 65
 #endif
 
-// TODO: refactor this entire file to be better in general
 // TODO: add regex support
-// TODO: add "-t" argument (always select the top process)
 // TODO: json/csv export option (because why not lol)
-// TODO: add "-r <time>" argument (retry on failure after waiting <time> seconds)
-// TODO: add "-g" argument (try gracefull shutdown first, then try to SIGKILL if needed)
 // TODO: add a config file for default options
-// TODO: update verbose output to include cpu, ram, age (new metrics)
 
-// Maybe make "-k" sigterm and "-K" sigkill?
-// Maybe warn if the process list contains a root-owned process?
 // Maybe add hooks for pre- and post-kill scripts (like logging or notifications)?
 
-// Add support for --exclude <pattern>
-
 #define MAX_EXCLUDE_PATTERNS 16
-static const char *short_opts = "Skxyptvr:u:";
+static const char *short_opts = "SKkxyptvr:u:";
 
 const swordfish_flag_desc_t swordfish_flags[] = {
     {"-S", "Select which PIDs to kill (interactive prompt)"},
-    {"-k", "Actually send the signal (default is to only list matches)"},
+    {"-k", "Send SIGTERM to matching processes (Graceful shutdown)"},
+    {"-K", "Send SIGKILL to matching processes (Forceful shutdown)"},
     {"-x", "Exact match process names (default: substring match)"},
     {"-y", "Auto-confirm kills; skip prompts and sudo confirmation"},
     {"-p", "Print raw PIDs only"},
@@ -120,6 +113,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     // Initialize defaults
     args->sig_str = "TERM";
     args->sig = SIGTERM;
+    args->do_term = false;
     args->do_kill = false;
     args->select_mode = false;
     args->exact_match = false;
@@ -133,6 +127,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     args->exclude_count = 0;
     args->top_only = false;
     args->retry_time = 0;
+    args->run_static = false;
 
     // Step 1: Pre-scan for -<SIGNAL> args like -9, -KILL, -TERM
     for (int i = 1; i < argc; i++) {
@@ -157,7 +152,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
 
             int sig = get_signal(sigstr);
             if (sig != -1) {
-                args->do_kill = true;
+                args->do_term = true;
                 args->sig = sig;
                 args->sig_str = sigstr;
 
@@ -168,7 +163,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
                 argc--;
                 i--; // re-check current index
             } else {
-                fprintf(stderr, "ERROR: Unknown signal: %s\n", sigstr);
+                ERROR("Unknown signal: %s", sigstr);
                 return 2;
             }
         }
@@ -189,7 +184,8 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &longindex)) != -1) {
         switch (opt) {
         case 'S': args->select_mode = true; break;
-        case 'k': args->do_kill = true; break;
+        case 'k': args->do_term = true; break;
+        case 'K': args->do_kill = true; break;
         case 'x': args->exact_match = true; break;
         case 'y': args->auto_confirm = true; break;
         case 'p': args->print_pids_only = true; break;
@@ -245,6 +241,18 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
 
     args->exclude_patterns = exclude_patterns;
     args->exclude_count = exclude_count;
+
+    // Step 5: Detect "static run" mode (just pattern with no flags)
+    if (argc - 1 == 1) { // Only one argument besides argv[0]
+        const char *arg = argv[1];
+        if (arg[0] != '-') {
+            args->run_static = true;
+            args->do_term = false;
+            args->do_kill = false;
+            args->select_mode = false;
+            args->auto_confirm = true;
+        }
+    }
 
     return 0;
 }

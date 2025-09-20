@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "process.h"
 #include "args.h"
+#include "main.h"
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -286,13 +287,30 @@ static int cmp_cpu(const void *a, const void *b) {
     const process_info_t *pa = a, *pb = b;
     return (pb->cpu > pa->cpu) - (pb->cpu < pa->cpu);
 }
+
 static int cmp_ram(const void *a, const void *b) {
     const process_info_t *pa = a, *pb = b;
     return (pb->ram > pa->ram) - (pb->ram < pa->ram);
 }
+
 static int cmp_age(const void *a, const void *b) {
     const process_info_t *pa = a, *pb = b;
     return (pa->start_time > pb->start_time) - (pa->start_time < pb->start_time);
+}
+
+static bool has_root_process(int count, int *selected, process_info_t *matches, int matched_total) {
+    if (count > 0 && selected) {
+        // Check only selected processes
+        for (int i = 0; i < count; ++i)
+            if (strcmp(matches[selected[i]].owner, "root") == 0)
+                return true;
+    } else {
+        // Check all matches
+        for (int i = 0; i < matched_total; ++i)
+            if (strcmp(matches[i].owner, "root") == 0)
+                return true;
+    }
+    return false;
 }
 
 static int find_matching_processes(const swordfish_args_t *args, pattern_list_t *plist,
@@ -348,7 +366,6 @@ static void select_processes(int matched, process_info_t *matches, int *selected
                              const swordfish_args_t *args, int sig) {
     printf("Select which processes to act on:\n");
     for (int i = 0; i < matched; ++i) {
-        // Use the same output logic as the main listing for consistency
         printf("[%d] ", i + 1);
         print_proc_info(&matches[i], sig, args, "", false);
     }
@@ -381,13 +398,20 @@ static void select_processes(int matched, process_info_t *matches, int *selected
     }
 }
 
-static void confirm_and_act(const swordfish_args_t *args, int count, int *selected,
-                            process_info_t *matches) {
-    if (args->do_kill && !args->auto_confirm && count > 0) {
-        printf("The following processes will be killed (signal %d - %s):\n", args->sig,
-               strsignal(args->sig));
+static void confirm_and_act(const swordfish_args_t *args, int count, int *selected, process_info_t *matches) {
+    // Show warning if any selected process is root
+    if (!args->run_static && has_root_process(count, selected, matches, 0)) {
+        WARN("At least one selected process is owned by root!");
+    }
+
+    if (count == 0) return;
+
+    int sig = args->do_kill ? SIGKILL : args->sig;
+
+    if (!args->auto_confirm) {
+        printf("The following processes will be killed (signal %d - %s):\n", sig, strsignal(sig));
         for (int i = 0; i < count; ++i)
-            print_proc_info(&matches[selected[i]], args->sig, args, "  PID ", false);
+            print_proc_info(&matches[selected[i]], sig, args, "  PID ", false);
 
         printf("Proceed? [y/N]: ");
         char confirm[8] = {0};
@@ -401,22 +425,22 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
     for (int i = 0; i < count; ++i) {
         int idx = selected[i];
         if (is_zombie_process(matches[idx].pid)) {
-            printf("PID %d (%s) is a zombie process and may not be killed.\n", matches[idx].pid,
-                   matches[idx].name);
+            printf("PID %d (%s) is a zombie process and may not be killed.\n",
+                   matches[idx].pid, matches[idx].name);
             continue;
         }
 
-        if (!args->do_kill) {
-            print_proc_info(&matches[idx], args->sig, args, "", false);
+        if (!args->do_term && !args->do_kill) {
+            print_proc_info(&matches[idx], sig, args, "", false);
             continue;
         }
 
-        if (kill(matches[idx].pid, args->sig) == 0)
-            print_proc_info(&matches[idx], args->sig, args,
-                            args->sig == SIGTERM ? "Killed " : "Sent signal to ", true);
+        if (kill(matches[idx].pid, sig) == 0)
+            print_proc_info(&matches[idx], sig, args,
+                            sig == SIGTERM ? "Killed " : "Killed ", true);
         else
-            fprintf(stderr, "Failed to kill PID %d (%s): %s\n", matches[idx].pid, matches[idx].name,
-                    strerror(errno));
+            fprintf(stderr, "Failed to kill PID %d (%s): %s\n",
+                    matches[idx].pid, matches[idx].name, strerror(errno));
     }
 }
 

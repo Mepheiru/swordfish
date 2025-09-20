@@ -8,12 +8,14 @@ typedef enum { SWSORT_NONE = 0, SWSORT_CPU, SWSORT_RAM, SWSORT_AGE } swordfish_s
 typedef struct {
     const char *sig_str;
     int sig;
+    bool do_term;
     bool do_kill;
     bool select_mode;
     bool exact_match;
     bool print_pids_only;
     bool auto_confirm;
     bool do_verbose;
+    bool run_static;
     const char *user;
     int pattern_start_idx;
     swordfish_sort_mode_t sort_mode;

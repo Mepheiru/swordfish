@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#define MAX_MATCHES 1024
-
 typedef struct {
     uid_t uid;
     char state;
