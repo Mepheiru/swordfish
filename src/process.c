@@ -146,10 +146,21 @@ static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
 static void print_proc_info(const process_info_t *p, int sig, const swordfish_args_t *args,
                             const char *prefix, bool include_signal) {
     const char *owner_fmt = (strcmp(p->owner, "root") == 0) ? "\033[33m%s\033[0m" : "%s";
+    long uptime = 0;
+    FILE *f = fopen("/proc/uptime", "r");
+    if (f) {
+        double up = 0;
+        if (fscanf(f, "%lf", &up) == 1)
+            uptime = (long)up;
+        fclose(f);
+    }
+    long age_min = (uptime - (p->start_time / sysconf(_SC_CLK_TCK))) / 60;
     if (args->do_verbose) {
-        printf("[VERBOSE] %s%d (%s) cmdl (%s) threads (%s) owned by ", prefix, p->pid, p->name,
-               p->cmdline, p->status.threads);
+        printf("%s%d (%s) cmdl (%s) threads (%s) owned by ", prefix, p->pid, p->name, p->cmdline,
+               p->status.threads);
         printf(owner_fmt, p->owner);
+        printf(" | CPU: %.1f%% | RAM: %.1f MB | Age: %ld min", p->cpu, p->ram / 1024.0,
+               age_min > 0 ? age_min : 0);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
     } else {
@@ -157,23 +168,13 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
         printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
-    }
-    // Append sort metric if --sort is used
-    if (args->sort_mode == SWSORT_CPU)
-        printf(" [%.1f%%]", p->cpu);
-    else if (args->sort_mode == SWSORT_RAM)
-        printf(" [%.1f MB]", p->ram / 1024.0);
-    else if (args->sort_mode == SWSORT_AGE) {
-        long uptime = 0;
-        FILE *f = fopen("/proc/uptime", "r");
-        if (f) {
-            double up = 0;
-            if (fscanf(f, "%lf", &up) == 1)
-                uptime = (long)up;
-            fclose(f);
-        }
-        long age_min = (uptime - (p->start_time / sysconf(_SC_CLK_TCK))) / 60;
-        printf(" [%ld min]", age_min > 0 ? age_min : 0);
+        // Append sort metric if --sort is used
+        if (args->sort_mode == SWSORT_CPU)
+            printf(" [%.1f%%]", p->cpu);
+        else if (args->sort_mode == SWSORT_RAM)
+            printf(" [%.1f MB]", p->ram / 1024.0);
+        else if (args->sort_mode == SWSORT_AGE)
+            printf(" [%ld min]", age_min > 0 ? age_min : 0);
     }
     printf("\n");
 }
@@ -328,10 +329,14 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
     return matched;
 }
 
-static void select_processes(int matched, process_info_t *matches, int *selected, int *count) {
+static void select_processes(int matched, process_info_t *matches, int *selected, int *count,
+                             const swordfish_args_t *args, int sig) {
     printf("Select which processes to act on:\n");
-    for (int i = 0; i < matched; ++i)
-        printf("[%d] PID %d (%s)\n", i + 1, matches[i].pid, matches[i].name);
+    for (int i = 0; i < matched; ++i) {
+        // Use the same output logic as the main listing for consistency
+        printf("[%d] ", i + 1);
+        print_proc_info(&matches[i], sig, args, "", false);
+    }
 
     printf("Enter numbers (e.g., 1,2,5-7) or leave empty for all: ");
     char input[256] = {0};
@@ -427,7 +432,7 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
 
     int selected[MAX_MATCHES], count = 0;
     if (args->select_mode && !args->auto_confirm)
-        select_processes(matched, matches, selected, &count);
+        select_processes(matched, matches, selected, &count, args, args->sig);
     else
         for (int i = 0; i < matched; ++i)
             selected[count++] = i;

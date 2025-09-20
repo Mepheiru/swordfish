@@ -12,22 +12,6 @@
 #define NSIG 65
 #endif
 
-// TODO: add back "-s <sig-name>" to the list of arguments
-// TODO: refactor grouped arguments to be more stable
-// TODO: refactor this entire file to be better in general
-// TODO: add "--exclude <pattern>" to the list of arguments
-// TODO: add regex support
-// TODO: add "-t" argument (always select the top process)
-// TODO: json/csv export option (because why not lol)
-// TODO: add "-r <time>" argument (retry on failure after waiting <time> seconds)
-// TODO: add "-g" argument (try gracefull shutdown first, then try to SIGKILL if needed)
-// TODO: add a config file for default options
-// TODO: update verbose output to include cpu, ram, age (new metrics)
-
-// Maybe make "-k" sigterm and "-K" sigkill?
-// Maybe warn if the process list contains a root-owned process?
-// Maybe add hooks for pre- and post-kill scripts (like logging or notifications)?
-
 const swordfish_flag_desc_t swordfish_flags[] = {
     {"-S", "Select which PIDs to kill (interactive prompt)"},
     {"-k", "Actually send the signal (default is to only list matches)"},
@@ -111,7 +95,7 @@ int get_signal(const char *sigstr) {
 }
 
 int parse_args(int argc, char **argv, swordfish_args_t *args) {
-    // Initialize defaults before any argument parsing
+    // Initialize defaults
     args->sig_str = "TERM";
     args->sig = SIGTERM;
     args->do_kill = false;
@@ -124,48 +108,45 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     args->sort_mode = SWSORT_NONE;
     args->sort_key = NULL;
 
-    static struct option longopts[] = {
-        {"sort", required_argument, NULL, 1000}, {"help", no_argument, NULL, 1001}, {0, 0, 0, 0}};
-    int opt;
-    int longindex = 0;
-    // Support -<SIGNAL> as shorthand (e.g. -9, -KILL, -TERM)
-    if (argc > 1 && argv[1][0] == '-' && argv[1][1] && argv[1][1] != '-' &&
-        (isdigit(argv[1][1]) || isalpha(argv[1][1]))) {
-        const char *sigstr = argv[1] + 1;
-        int sig = get_signal(sigstr);
-        if (sig != -1) {
-            args->do_kill = true;
-            args->sig = sig;
-            args->sig_str = sigstr;
-            // Remove this arg from argv for getopt
-            for (int i = 1; i < argc - 1; ++i)
-                argv[i] = argv[i + 1];
-            argc--;
+    // Step 1: Pre-scan for -<SIGNAL> args like -9, -KILL, -TERM
+    for (int i = 1; i < argc; i++) {
+        if (argv[i][0] == '-' && argv[i][1] && argv[i][1] != '-') {
+            const char *sigstr = argv[i] + 1;
+            int sig = get_signal(sigstr);
+            if (sig != -1) {
+                args->do_kill = true;
+                args->sig = sig;
+                args->sig_str = sigstr;
+
+                // Remove this arg so getopt doesn’t see it
+                for (int j = i; j < argc - 1; j++) {
+                    argv[j] = argv[j + 1];
+                }
+                argc--;
+                i--; // re-check current index
+            }
         }
     }
+
+    // Step 2: Define long options
+    static struct option longopts[] = {
+        {"sort", required_argument, NULL, 1000},
+        {"help", no_argument, NULL, 1001},
+        {0, 0, 0, 0}
+    };
+
+    // Step 3: Parse grouped short flags and long opts
+    int opt, longindex = 0;
     while ((opt = getopt_long(argc, argv, "Skxypu:v", longopts, &longindex)) != -1) {
         switch (opt) {
-        case 'S':
-            args->select_mode = true;
-            break;
-        case 'k':
-            args->do_kill = true;
-            break;
-        case 'x':
-            args->exact_match = true;
-            break;
-        case 'y':
-            args->auto_confirm = true;
-            break;
-        case 'p':
-            args->print_pids_only = true;
-            break;
-        case 'u':
-            args->user = optarg;
-            break;
-        case 'v':
-            args->do_verbose = true;
-            break;
+        case 'S': args->select_mode = true; break;
+        case 'k': args->do_kill = true; break;
+        case 'x': args->exact_match = true; break;
+        case 'y': args->auto_confirm = true; break;
+        case 'p': args->print_pids_only = true; break;
+        case 'u': args->user = optarg; break;
+        case 'v': args->do_verbose = true; break;
+
         case 1000: // --sort
             args->sort_key = optarg;
             if (strcmp(args->sort_key, "cpu") == 0)
@@ -180,25 +161,23 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
                 return 2;
             }
             break;
+
         case 1001: // --help
             help(argv[0]);
             exit(0);
+
         default:
             usage(argv[0]);
             return 2;
         }
     }
+
+    // Step 4: Remaining args = patterns
     if (optind >= argc) {
         usage(argv[0]);
         return 2;
     }
     args->pattern_start_idx = optind;
-    // Only override sig if not already set by -<SIGNAL>
-    if (!args->do_kill || (args->sig_str && strcmp(args->sig_str, "TERM") == 0))
-        args->sig = get_signal(args->sig_str);
-    if (args->sig == -1) {
-        fprintf(stderr, "Unknown signal: %s\n", args->sig_str);
-        return 2;
-    }
+
     return 0;
 }
