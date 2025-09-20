@@ -1,52 +1,59 @@
-# Prerequisites
-*.d
-
-# Object files
+# Object files and compilation artifacts
 *.o
-*.ko
 *.obj
-*.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
+*.ko
+*.lo
+*.la
 *.gch
 *.pch
+*.mod*
+*.cmd
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
+# Executables and binaries (with or without extensions)
+*.elf
 *.out
+*.exe
 *.app
 *.i*86
 *.x86_64
 *.hex
+*.bin
+
+# Specific binary (your compiled tool, e.g., 'swordfish')
+swordfish
+
+# Shared objects and libraries
+*.so
+*.so.*
+*.dll
+*.dylib
+*.lib
+*.a
+
+# Linker files
+*.ilk
+*.map
+*.exp
 
 # Debug files
+*.pdb
+*.idb
 *.dSYM/
 *.su
-*.idb
-*.pdb
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
+# GCC dependency files
+*.d
+
+# Build output directories (if used)
+build/
+bin/
+
+# Kernel module build stuff
 .tmp_versions/
 modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# VsCode shenanigans
+.vscode/

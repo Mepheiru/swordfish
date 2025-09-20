@@ -1,24 +1,30 @@
 CC ?= gcc
-CFLAGS ?= -Wall -Wextra -O2
+CFLAGS ?= -Wall -Wextra -O2 -std=gnu11
 LDFLAGS ?= 
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
-TARGET = swordfish
-SRC = main.c
+BUILDDIR = build
+TARGET = $(BUILDDIR)/swordfish
+SRC = src/main.c src/args.c src/process.c src/hooks.c
+HEADERS = src/args.h src/process.h src/main.h src/hooks.h
+UNIT_TEST = tests/test_process
 
-all: $(TARGET)
+all: $(BUILDDIR) $(TARGET)
 
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+$(BUILDDIR):
+	@mkdir -p $(BUILDDIR)
+
+$(TARGET): $(SRC) $(HEADERS)
+	$(CC) $(CFLAGS) -o $@ $(SRC) $(LDFLAGS)
 
 install: $(TARGET)
-	install -Dm755 $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
+	install -Dm755 $(TARGET) $(DESTDIR)$(BINDIR)/swordfish
 
 uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
+	rm -f $(DESTDIR)$(BINDIR)/swordfish
 
 clean:
-	rm -f $(TARGET)
+	rm -rf $(BUILDDIR)
 
-.PHONY: all install uninstall clean
+.PHONY: all install uninstall clean test
