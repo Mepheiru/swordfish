@@ -7,8 +7,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "main.h"
 #include "args.h"
+#include "main.h"
 #include "process.h"
 
 int process_requires_sudo(const char *pattern) {
@@ -71,68 +71,18 @@ int process_requires_sudo(const char *pattern) {
     return 0; // All matched processes are owned
 }
 
-static int maybe_reexec_with_sudo(int argc, char **argv, const swordfish_args_t *args) {
-    if (!args->do_kill)
-        return 0;
-    if (!process_requires_sudo(argv[args->pattern_start_idx]))
-        return 0;
-    if (args->auto_confirm) {
-        char **new_argv = malloc((argc + 2) * sizeof(char *));
-        if (!new_argv) {
-            perror("malloc");
-            return 2;
-        }
-        new_argv[0] = "sudo";
-        for (int i = 0; i < argc; ++i)
-            new_argv[i + 1] = argv[i];
-        new_argv[argc + 1] = NULL;
-        execvp("sudo", new_argv);
-        perror("execvp failed");
-        free(new_argv);
-        return 2;
-    } else {
-        fprintf(stderr, "Warning: Some matching processes are not owned by you.\n");
-        printf("Rerun with sudo? [y/N]: ");
-        char response[8] = {0};
-        fgets(response, sizeof(response), stdin);
-        if (response[0] == 'y' || response[0] == 'Y') {
-            char **new_argv = malloc((argc + 2) * sizeof(char *));
-            if (!new_argv) {
-                perror("malloc");
-                return 2;
-            }
-            new_argv[0] = "sudo";
-            for (int i = 0; i < argc; ++i)
-                new_argv[i + 1] = argv[i];
-            new_argv[argc + 1] = NULL;
-            execvp("sudo", new_argv);
-            perror("execvp failed");
-            free(new_argv);
-            return 2;
-        }
-    }
-    return 0;
-}
-
-static void maybe_drop_privileges(const swordfish_args_t *args) {
-    if (!args->do_kill && geteuid() == 0) {
-        drop_privileges();
-    }
-}
-
 int main(int argc, char **argv) {
     swordfish_args_t args;
-
-    // Call parse_args to check what arguments were passed
-    // If no arguments, print usage and exit[2]
-    if (parse_args(argc, argv, &args) != 0)
-        return 2;
-
-    int sudo_result = maybe_reexec_with_sudo(argc, argv, &args);
-    if (sudo_result != 0)
-        return sudo_result;
-
-    maybe_drop_privileges(&args);
-
-    return scan_processes(&args, &argv[args.pattern_start_idx], argc - args.pattern_start_idx);
+    int ret = parse_args(argc, argv, &args);
+    if (ret)
+        return ret;
+    drop_privileges();
+    int pattern_count = argc - args.pattern_start_idx;
+    char **patterns = &argv[args.pattern_start_idx];
+    bool pattern_is_pid[pattern_count];
+    for (int i = 0; i < pattern_count; ++i)
+        pattern_is_pid[i] = is_all_digits(patterns[i]);
+    pattern_list_t plist = {
+        .patterns = patterns, .pattern_is_pid = pattern_is_pid, .pattern_count = pattern_count};
+    return scan_processes(&args, &plist);
 }

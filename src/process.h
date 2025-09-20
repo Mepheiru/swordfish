@@ -5,6 +5,12 @@
 
 #define MAX_MATCHES 1024
 
+typedef struct {
+    char **patterns;
+    bool *pattern_is_pid;
+    int pattern_count;
+} pattern_list_t;
+
 // Process entry struct for process matching and info
 typedef struct {
     pid_t pid;
@@ -12,7 +18,7 @@ typedef struct {
     char owner[64];
 } proc_entry_t;
 
-int scan_processes(const swordfish_args_t *args, char **patterns, int pattern_count);
+int scan_processes(const swordfish_args_t *args, pattern_list_t *plist);
 void drop_privileges(void);
 bool is_all_digits(const char *s);
 bool is_zombie_process(pid_t pid);

@@ -18,7 +18,6 @@ const swordfish_flag_desc_t swordfish_flags[] = {
     {"-x", "Exact match process names (default: substring match)"},
     {"-y", "Auto-confirm kills; skip prompts and sudo confirmation"},
     {"-p", "Print raw PIDs only"},
-    {"-s <SIGNAL>", "Signal to send (name or number, default TERM)"},
     {"-<SIGNAL>", "Shorthand to specify signal (e.g. -9, -KILL)"},
     {"-u <USER>", "Filter processes by username"},
     {"-v", "Enable verbose output"},
@@ -44,7 +43,7 @@ const size_t signals_count = sizeof(signals) / sizeof(signals[0]);
 void usage(const char *prog) {
     fprintf(stderr,
             "Swordfish : A pkill-like CLI tool\n"
-            "Usage: %s -[SNkxypsu:] pattern [pattern ...]\n",
+            "Usage: %s -[Skxypu:v] pattern [pattern ...]\n",
             prog);
     for (size_t i = 0; i < swordfish_flags_count; ++i) {
         fprintf(stderr, "  %-14s: %s\n", swordfish_flags[i].flag, swordfish_flags[i].desc);
@@ -130,7 +129,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     }
 
     int opt;
-    while ((opt = getopt(argc, argv, "Skxyps:u:v")) != -1) {
+    while ((opt = getopt(argc, argv, "Skxypu:v")) != -1) {
         switch (opt) {
         case 'S':
             args->select_mode = true;
@@ -146,9 +145,6 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
             break;
         case 'p':
             args->print_pids_only = true;
-            break;
-        case 's':
-            args->sig_str = optarg;
             break;
         case 'u':
             args->user = optarg;

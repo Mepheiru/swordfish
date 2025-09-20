@@ -40,4 +40,3 @@ extern const size_t signals_count;
 void usage(const char *prog);
 void help(const char *prog);
 int parse_args(int argc, char **argv, swordfish_args_t *args);
-int get_signal(const char *sigstr);

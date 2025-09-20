@@ -125,20 +125,19 @@ bool is_all_digits(const char *s) {
 
 // Helper: check if entry matches any pattern (PID or name)
 static bool entry_matches(const struct dirent *entry, const char *name, const char *cmdline,
-                          char **patterns, bool *pattern_is_pid, int pattern_count,
-                          const swordfish_args_t *args) {
-    for (int i = 0; i < pattern_count; ++i) {
-        if (pattern_is_pid[i]) {
-            if (strcmp(entry->d_name, patterns[i]) == 0)
+                          pattern_list_t *plist, const swordfish_args_t *args) {
+    for (int i = 0; i < plist->pattern_count; ++i) {
+        if (plist->pattern_is_pid[i]) {
+            if (strcmp(entry->d_name, plist->patterns[i]) == 0)
                 return true;
         }
     }
-    return pattern_matches(args, name, cmdline, patterns, pattern_count);
+    return pattern_matches(args, name, cmdline, plist->patterns, plist->pattern_count);
 }
 
 // Helper: fill matches array, return number matched
-static int find_matching_processes(const swordfish_args_t *args, char **patterns, int pattern_count,
-                                   proc_entry_t *matches, bool *pattern_is_pid) {
+static int find_matching_processes(const swordfish_args_t *args, pattern_list_t *plist,
+                                   proc_entry_t *matches) {
     DIR *proc = opendir("/proc");
     if (!proc) {
         perror("opendir /proc");
@@ -188,7 +187,7 @@ static int find_matching_processes(const swordfish_args_t *args, char **patterns
         }
         if (args->user && strcasecmp(get_proc_user(uid), args->user) != 0)
             continue;
-        if (entry_matches(entry, name, cmdline, patterns, pattern_is_pid, pattern_count, args)) {
+        if (entry_matches(entry, name, cmdline, plist, args)) {
             if (matched < MAX_MATCHES) {
                 matches[matched].pid = atoi(entry->d_name);
                 snprintf(matches[matched].name, sizeof(matches[matched].name), "%s", name);
@@ -261,16 +260,15 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
                             proc_entry_t *matches) {
     // Confirmation prompt for killing processes (unless auto_confirm)
     if (args->do_kill && !args->auto_confirm && count > 0) {
-        printf("The following processes will be killed (signal %d - %s):\n", args->sig,
+        const char *action = (args->sig == SIGTERM) ? "killed" : "affected";
+        printf("The following processes will be %s (signal %d - %s):\n", action, args->sig,
                strsignal(args->sig));
-        for (int i = 0; i < count; ++i) {
-            int idx = selected[i];
-            print_proc_info(&matches[idx], args->sig, args, "  PID ", false, false);
-        }
+        for (int i = 0; i < count; ++i)
+            print_proc_info(&matches[selected[i]], args->sig, args, "  PID ", false, false);
         printf("Proceed? [y/N]: ");
         char confirm[8] = {0};
         fgets(confirm, sizeof(confirm), stdin);
-        if (confirm[0] != 'y' && confirm[0] != 'Y') {
+        if (tolower(confirm[0]) != 'y') {
             printf("Aborted.\n");
             return;
         }
@@ -282,26 +280,25 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
                    matches[idx].name);
             continue;
         }
-        if (args->do_kill) {
-            if (kill(matches[idx].pid, args->sig) == 0)
-                print_proc_info(&matches[idx], args->sig, args, "Sent signal to ", true,
-                                true); // force non-verbose
-            else
-                fprintf(stderr, "Failed to kill PID %d (%s): %s\n", matches[idx].pid,
-                        matches[idx].name, strerror(errno));
-        } else {
+        if (!args->do_kill) {
             print_proc_info(&matches[idx], args->sig, args, "", false, false);
+            continue;
+        }
+        if (kill(matches[idx].pid, args->sig) == 0) {
+            if (args->sig == SIGTERM)
+                print_proc_info(&matches[idx], args->sig, args, "Killed ", true, true);
+            else
+                print_proc_info(&matches[idx], args->sig, args, "Sent signal to ", true, true);
+        } else {
+            fprintf(stderr, "Failed to kill PID %d (%s): %s\n", matches[idx].pid, matches[idx].name,
+                    strerror(errno));
         }
     }
 }
 
-int scan_processes(const swordfish_args_t *args, char **patterns, int pattern_count) {
-    bool pattern_is_pid[pattern_count];
-    for (int i = 0; i < pattern_count; ++i)
-        pattern_is_pid[i] = is_all_digits(patterns[i]);
-
+int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
     proc_entry_t matches[MAX_MATCHES];
-    int matched = find_matching_processes(args, patterns, pattern_count, matches, pattern_is_pid);
+    int matched = find_matching_processes(args, plist, matches);
     if (matched < 0)
         return 2;
 

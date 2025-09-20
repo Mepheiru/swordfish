@@ -9,7 +9,6 @@
 ## Features
 - Grouped flags like `-Sky` (inspired by pacman)
 - Raw signal support (e.g. `-10`, `-15`)
-- Dry run mode to see what would be killed and how
 - Lightweight and dependency-free (for now)
 
 ###
