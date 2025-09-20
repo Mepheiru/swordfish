@@ -128,6 +128,8 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     args->top_only = false;
     args->retry_time = 0;
     args->run_static = false;
+    args->pre_hook[0] = '\0';
+    args->post_hook[0] = '\0';
 
     // Step 1: Pre-scan for -<SIGNAL> args like -9, -KILL, -TERM
     for (int i = 1; i < argc; i++) {
@@ -172,8 +174,10 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     // Step 2: Define long options
     static struct option long_opts[] = {
         {"sort", required_argument, NULL, 1000},
-        {"exclude", required_argument, NULL, 1002},
         {"help", no_argument, NULL, 1001},
+        {"exclude", required_argument, NULL, 1002},
+        {"pre-hook", required_argument, NULL, 1003},
+        {"post-hook", required_argument, NULL, 1004},
         {0, 0, 0, 0}
     };
 
@@ -211,11 +215,12 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
                 usage(argv[0]);
                 return 2;
             }
-            break;
+        break;
 
         case 1001: // --help
             help(argv[0]);
             exit(0);
+        break;
 
         case 1002: // --exclude
             if (exclude_count < MAX_EXCLUDE_PATTERNS) {
@@ -224,7 +229,15 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
                 fprintf(stderr, "Too many --exclude patterns (max %d)\n", MAX_EXCLUDE_PATTERNS);
                 return 2;
             }
-            break;
+        break;
+
+        case 1003: // --pre-hook
+            safe_strcpy(args->pre_hook, optarg, sizeof(args->pre_hook));
+        break;
+
+        case 1004: // --post-hook
+            safe_strcpy(args->post_hook, optarg, sizeof(args->post_hook));
+        break;
 
         default:
             usage(argv[0]);

@@ -16,3 +16,5 @@
 
 #define INFO(msg, ...) \
     fprintf(stdout, COLOR_YELLOW "INFO:" COLOR_RESET " " msg "\n", ##__VA_ARGS__)
+
+void safe_strcpy(char *dst, const char *src, size_t size);

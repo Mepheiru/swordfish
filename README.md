@@ -4,13 +4,16 @@
 ## Why use this instead of pkill?
 - You prefer grouped, pacman-style flags (e.g. `-ky`)
 - You want more safety if you kill the wrong process or PID
-- You like lightweight, clean, CLI tools.
+- You like lightweight, clean, CLI tools
 
 ## Features
 - Grouped flags like `-Sky` (inspired by pacman)
-- Raw signal support (e.g. `-10`, `-15`)
+- Raw signal support (e.g. `-10`, `-15`, `TERM`, `KILL`)
 - Lightweight and dependency-free (for now)
+- Pre-kill & Post-kill script hooks
+- Basic regex support
 
+More can be found on the help page
 ###
 
 ![swordfish preview](assets/img1.png)
@@ -20,17 +23,23 @@
 ## Usage Examples
 
 ```bash
-# Dry run
-swordfish -s firefox
-
 # Kill all 'nvim' processes using SIGTERM
 swordfish -k nvim
+
+# Kill all 'nvim' processes using SIGKILL
+swordfish -K nvim
 
 # Kill all 'nvim' and 'firefox' processes without the confirmation
 swordfish -ky nvim firefox
 
-# Kill only certain processes selected via user input
+# Kill processes selected via user input
 swordfish -Sk bash
+
+# Recursively terminate 'firefox' every 1 second
+swordfish -kyr 1 firefox
+
+# Run 'script1.sh' and 'script2.sh' before/after killing Neovim
+swordfish -TERM --pre-hook ./script1.sh --post-hook ./script2.sh nvim
 ```
 
 ## Installation
@@ -58,6 +67,6 @@ make
 MIT
 
 ## Contributing
-Feel free to contribute. Any help is welcome! Our goal is to create a useful tool for all to use. This is my first thing I've made in C that's actually public (help is greatly appreciated).
+Feel free to contribute. Any help is welcome! Our goal is to create a useful tool for all to use. This is my first thing I've made in C that's actually public (help is greatly appreciated!).
 
 Follow all standard etiquette when working with others, yada yada blah blah blah.

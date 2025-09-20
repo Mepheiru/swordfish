@@ -370,6 +370,26 @@ static bool has_root_process(int count, int *selected, process_info_t *matches, 
     return false;
 }
 
+void safe_strcpy(char *dst, const char *src, size_t size) {
+    if (!dst || !src || size == 0) return;
+    strncpy(dst, src, size - 1);
+    dst[size - 1] = '\0';
+}
+
+static void run_hook(const char *hook, pid_t pid, const char *name) {
+    if (!hook || hook[0] == '\0') {
+        WARN("Hook is empty. Skipping.");
+    }  // ignore empty hooks
+
+    char cmd[512];
+    snprintf(cmd, sizeof(cmd), "%s %d %s", hook, pid, name);
+
+    if (system(cmd) != 0) {
+        fprintf(stderr, "Hook '%s' failed for PID %d (%s)\n", hook, pid, name);
+    }
+}
+
+
 static int find_matching_processes(const swordfish_args_t *args, pattern_list_t *plist,
                                    process_info_t *matches, compiled_pattern_t *compiled) {
     DIR *proc = opendir("/proc");
@@ -386,6 +406,10 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
 
         process_info_t p = {0};
         p.pid = atoi(entry->d_name);
+
+        // Skip the scanner process itself
+        if (p.pid == getpid())
+            continue;
 
         char comm_path[PATH_MAX];
         snprintf(comm_path, sizeof(comm_path), "/proc/%s/comm", entry->d_name);
@@ -465,9 +489,13 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
 
     int sig = args->do_kill ? SIGKILL : args->sig;
 
+    // Pre-kill hook
+    run_hook(args->pre_hook, matches[selected[0]].pid, matches[selected[0]].name);
+
     if (args->do_term || (args->do_kill && !args->auto_confirm)) {
         for (int i = 0; i < count; ++i)
             print_proc_info(&matches[selected[i]], sig, args, "  PID ", false);
+
         printf("The processe(s) above will be affected (signal %d - %s):\n", sig, strsignal(sig));
         printf("Proceed? [y/N]: ");
         char confirm[8] = {0};
@@ -498,6 +526,8 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
             fprintf(stderr, "Failed to kill PID %d (%s): %s\n",
                     matches[idx].pid, matches[idx].name, strerror(errno));
     }
+    // Post-kill hook
+    run_hook(args->post_hook, matches[selected[0]].pid, matches[selected[0]].name);
 }
 
 int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {

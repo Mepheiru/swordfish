@@ -26,6 +26,8 @@ typedef struct {
     // New fields for -t and -r
     bool top_only;
     int retry_time;
+    char pre_hook[256];
+    char post_hook[256];
 } swordfish_args_t;
 
 typedef struct {
