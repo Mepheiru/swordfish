@@ -6,8 +6,8 @@ PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 BUILDDIR = build
 TARGET = $(BUILDDIR)/swordfish
-SRC = src/main.c src/args.c src/process.c
-HEADERS = src/args.h src/process.h
+SRC = src/main.c src/args.c src/process.c src/hooks.c
+HEADERS = src/args.h src/process.h src/main.h src/hooks.h
 UNIT_TEST = tests/test_process
 
 all: $(BUILDDIR) $(TARGET)

@@ -1,5 +1,6 @@
 #include "args.h"
 #include "main.h"
+#include "hooks.h"
 #include <ctype.h>
 #include <getopt.h>
 #include <limits.h>
@@ -16,8 +17,6 @@
 // TODO: json/csv export option (because why not lol)
 // TODO: add a config file for default options
 // TODO: add proper piping support
-
-// Maybe add hooks for pre- and post-kill scripts (like logging or notifications)?
 
 #define MAX_EXCLUDE_PATTERNS 16
 static const char *short_opts = "SKkxyptvr:u:";
