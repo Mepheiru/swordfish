@@ -33,7 +33,7 @@ typedef enum { PAT_EXACT, PAT_REGEX, PAT_SUBSTR } pattern_type_t;
 typedef struct {
     char pattern[256];
     int type;
-    regex_t regex; // <- must be regex_t
+    regex_t regex;
 } compiled_pattern_t;
 
 #define MAX_PATTERNS 64
@@ -42,3 +42,4 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist);
 void drop_privileges(void);
 bool is_all_digits(const char *s);
 bool is_zombie_process(pid_t pid);
+bool is_interactive(void);

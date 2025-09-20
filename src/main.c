@@ -91,7 +91,7 @@ int main(int arg_count, char **argv) {
         }
     }
 
-    if (has_empty_pattern && !args.auto_confirm) {
+    if (has_empty_pattern && !args.auto_confirm && is_interactive()) {
         WARN("Empty pattern specified. \nThis may match all processes and could be " COLOR_WARN "dangerous!" COLOR_RESET);
         printf("Proceed? [y/N]: ");
         char confirm[8] = {0};

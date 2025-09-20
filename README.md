@@ -1,17 +1,24 @@
-# swordfish
-`swordfish` is a pkill-like CLI tool that's feature-rich and written in C. It lets you find and kill processes with ease and cleaner flag syntax.
+# Swordfish
+`Swordfish` is a pkill-like CLI tool that's feature-rich and written in C. It lets you find and kill processes with ease and cleaner flag syntax.
 
 ## Why use this instead of pkill?
+Swordfish was made to make managing processes easier. It started as a project for me (seaslug) to learn C. Why use Swordfish instead of pkill or other tools? Below are some reasons!
 - You prefer grouped, pacman-style flags (e.g. `-ky`)
 - You want more safety if you kill the wrong process or PID
 - You like lightweight, clean, CLI tools
+- You want to not only kill processes but also view information about them
 
 ## Features
 - Grouped flags like `-Sky` (inspired by pacman)
 - Raw signal support (e.g. `-10`, `-15`, `TERM`, `KILL`)
 - Lightweight and dependency-free (for now)
-- Pre-kill & Post-kill script hooks
+- re- and post-kill script hooks (`--pre-hook` / `--post-hook`)
 - Basic regex support
+- Static mode for read-only listing
+- Verbose process info
+- Sorting by RAM, CPU, or age
+- Pattern exclusions (`--exclude`)
+- Built-in retry functionality (`-r <time>`)
 
 More can be found on the help page
 ###
@@ -62,6 +69,18 @@ git clone https://github.com/Foox-dev/swordfish
 cd swordfish
 make
 ```
+
+## Currently Planned Features
+- Config file support for default flags and settings
+- Improved piping support for safer read-only mode
+- Advanced regex features
+- Additional Scripting hooks
+
+## Possible Future Additions
+- JSON/CSV export of process lists
+- Plugin system or modular extensions
+- Ncurses interface
+
 
 ## License
 MIT

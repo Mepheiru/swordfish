@@ -108,6 +108,14 @@ static void strtolower(char *s) {
         *s = tolower((unsigned char)*s);
 }
 
+static bool is_output_terminal(void) {
+    return isatty(STDOUT_FILENO);
+}
+
+bool is_interactive(void) {
+    return isatty(STDOUT_FILENO) && isatty(STDIN_FILENO);
+}
+
 static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist,
                              compiled_pattern_t *compiled) 
 {
@@ -219,7 +227,12 @@ static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
 
 static void print_proc_info(const process_info_t *p, int sig, const swordfish_args_t *args,
                             const char *prefix, bool include_signal) {
-    const char *owner_fmt = (strcmp(p->owner, "root") == 0) ? "\033[33m%s\033[0m" : "%s";
+    bool tty = is_output_terminal();
+
+    const char *owner_fmt = "%s";
+    if (tty && strcmp(p->owner, "root") == 0)
+        owner_fmt = "\033[33m%s\033[0m"; // only color if terminal
+
     long uptime = 0;
     FILE *f = fopen("/proc/uptime", "r");
     if (f) {
@@ -229,12 +242,15 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
         fclose(f);
     }
     long age_min = (uptime - (p->start_time / sysconf(_SC_CLK_TCK))) / 60;
-    if (args->do_verbose) {
+
+    if (args->do_verbose || !tty) {
         printf("%s%d (%s) cmdl (%s) threads (%s) owned by ", prefix, p->pid, p->name, p->cmdline,
                p->status.threads);
         printf(owner_fmt, p->owner);
-        printf(" | CPU: %.1f%% | RAM: %.1f MB | Age: %ld min", p->cpu, p->ram / 1024.0,
-               age_min > 0 ? age_min : 0);
+        if (tty) {
+            printf(" | CPU: %.1f%% | RAM: %.1f MB | Age: %ld min", p->cpu, p->ram / 1024.0,
+                   age_min > 0 ? age_min : 0);
+        }
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
     } else {
@@ -242,13 +258,14 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
         printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
-        // Append sort metric if --sort is used
-        if (args->sort_mode == SWSORT_CPU)
-            printf(" [%.1f%%]", p->cpu);
-        else if (args->sort_mode == SWSORT_RAM)
-            printf(" [%.1f MB]", p->ram / 1024.0);
-        else if (args->sort_mode == SWSORT_AGE)
-            printf(" [%ld min]", age_min > 0 ? age_min : 0);
+        if (tty) {
+            if (args->sort_mode == SWSORT_CPU)
+                printf(" [%.1f%%]", p->cpu);
+            else if (args->sort_mode == SWSORT_RAM)
+                printf(" [%.1f MB]", p->ram / 1024.0);
+            else if (args->sort_mode == SWSORT_AGE)
+                printf(" [%ld min]", age_min > 0 ? age_min : 0);
+        }
     }
     printf("\n");
 }
@@ -426,6 +443,13 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
 
 static void select_processes(int matched, process_info_t *matches, int *selected, int *count,
                              const swordfish_args_t *args, int sig) {
+    if (!is_interactive()) {
+        // Non-interactive → select all
+        for (int i = 0; i < matched; ++i)
+            selected[(*count)++] = i;
+        return;
+    }
+
     printf("Select which processes to act on:\n");
     for (int i = 0; i < matched; ++i) {
         printf("[%d] ", i + 1);
@@ -460,9 +484,10 @@ static void select_processes(int matched, process_info_t *matches, int *selected
     }
 }
 
+
 static void confirm_and_act(const swordfish_args_t *args, int count, int *selected, process_info_t *matches) {
     // Show warning if any selected process is root
-    if (!args->run_static && has_root_process(count, selected, matches, 0)) {
+    if (!args->run_static && has_root_process(count, selected, matches, 0) && is_interactive()) {
         WARN("At least one selected process is owned by root!");
     }
 
@@ -473,7 +498,7 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
     // Pre-kill hook
     run_hook(args->pre_hook, matches[selected[0]].pid, matches[selected[0]].name);
 
-    if (args->do_term || (args->do_kill && !args->auto_confirm)) {
+    if ((args->do_term || (args->do_kill && !args->auto_confirm)) && is_interactive()) {
         for (int i = 0; i < count; ++i)
             print_proc_info(&matches[selected[i]], sig, args, "  PID ", false);
 
