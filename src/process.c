@@ -135,6 +135,21 @@ static bool pattern_matches(const swordfish_args_t *args, const char *name, cons
 
 static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
                           const swordfish_args_t *args) {
+    // Exclude patterns: skip if any exclude pattern matches
+    if (args->exclude_patterns && args->exclude_count > 0) {
+        char name_lc[256], cmdline_lc[256];
+        strncpy(name_lc, p->name, sizeof(name_lc));
+        name_lc[sizeof(name_lc) - 1] = '\0';
+        strncpy(cmdline_lc, p->cmdline, sizeof(cmdline_lc));
+        cmdline_lc[sizeof(cmdline_lc) - 1] = '\0';
+        strtolower(name_lc);
+        strtolower(cmdline_lc);
+        for (int i = 0; i < args->exclude_count; ++i) {
+            const char *ex = args->exclude_patterns[i];
+            if (strstr(name_lc, ex) != NULL || strstr(cmdline_lc, ex) != NULL)
+                return false; // Exclude match: skip
+        }
+    }
     for (int i = 0; i < plist->pattern_count; ++i) {
         if (plist->pattern_is_pid[i] && is_all_digits(plist->patterns[i]) &&
             atoi(plist->patterns[i]) == p->pid)
@@ -406,37 +421,43 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
 }
 
 int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
-    process_info_t matches[MAX_MATCHES];
-    int matched = find_matching_processes(args, plist, matches);
-    if (matched < 0)
-        return 2;
+    int tries = 0;
+    while (1) {
+        process_info_t matches[MAX_MATCHES];
+        int matched = find_matching_processes(args, plist, matches);
+        // Sort if requested
+        if (args->sort_mode == SWSORT_CPU)
+            qsort(matches, matched, sizeof(process_info_t), cmp_cpu);
+        else if (args->sort_mode == SWSORT_RAM)
+            qsort(matches, matched, sizeof(process_info_t), cmp_ram);
+        else if (args->sort_mode == SWSORT_AGE)
+            qsort(matches, matched, sizeof(process_info_t), cmp_age);
 
-    // Sort if requested
-    if (args->sort_mode == SWSORT_CPU)
-        qsort(matches, matched, sizeof(process_info_t), cmp_cpu);
-    else if (args->sort_mode == SWSORT_RAM)
-        qsort(matches, matched, sizeof(process_info_t), cmp_ram);
-    else if (args->sort_mode == SWSORT_AGE)
-        qsort(matches, matched, sizeof(process_info_t), cmp_age);
+        if (args->print_pids_only) {
+            for (int i = 0; i < matched; ++i)
+                printf("%d\n", matches[i].pid);
+            return matched > 0 ? 0 : 1;
+        }
 
-    if (args->print_pids_only) {
-        for (int i = 0; i < matched; ++i)
-            printf("%d\n", matches[i].pid);
-        return matched > 0 ? 0 : 1;
+        int selected[MAX_MATCHES], count = 0;
+        if (matched > 0) {
+            if (args->top_only) {
+                selected[count++] = 0;
+            } else if (args->select_mode && !args->auto_confirm) {
+                select_processes(matched, matches, selected, &count, args, args->sig);
+            } else {
+                for (int i = 0; i < matched; ++i)
+                    selected[count++] = i;
+            }
+            confirm_and_act(args, count, selected, matches);
+        } else {
+            fprintf(stderr, "No processes matched.\n");
+        }
+
+        if (args->retry_time <= 0)
+            break;
+        sleep(args->retry_time);
+        tries++;
     }
-
-    if (matched == 0) {
-        fprintf(stderr, "No processes matched.\n");
-        return 1;
-    }
-
-    int selected[MAX_MATCHES], count = 0;
-    if (args->select_mode && !args->auto_confirm)
-        select_processes(matched, matches, selected, &count, args, args->sig);
-    else
-        for (int i = 0; i < matched; ++i)
-            selected[count++] = i;
-
-    confirm_and_act(args, count, selected, matches);
     return 0;
 }

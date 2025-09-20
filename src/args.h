@@ -18,6 +18,12 @@ typedef struct {
     int pattern_start_idx;
     swordfish_sort_mode_t sort_mode;
     const char *sort_key;
+    // Add exclude patterns support
+    const char **exclude_patterns;
+    int exclude_count;
+    // New fields for -t and -r
+    bool top_only;
+    int retry_time;
 } swordfish_args_t;
 
 typedef struct {
