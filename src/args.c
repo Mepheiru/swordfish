@@ -14,10 +14,6 @@
 #define NSIG 65
 #endif
 
-// TODO: json/csv export option (because why not lol)
-// TODO: add a config file for default options
-// TODO: add proper piping support
-
 #define MAX_EXCLUDE_PATTERNS 16
 static const char *short_opts = "SKkxyptvr:u:";
 
