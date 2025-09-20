@@ -13,9 +13,9 @@
 #define NSIG 65
 #endif
 
-// TODO: add regex support
 // TODO: json/csv export option (because why not lol)
 // TODO: add a config file for default options
+// TODO: add proper piping support
 
 // Maybe add hooks for pre- and post-kill scripts (like logging or notifications)?
 
@@ -250,7 +250,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
             args->do_term = false;
             args->do_kill = false;
             args->select_mode = false;
-            args->auto_confirm = true;
+            args->auto_confirm = false;
         }
     }
 

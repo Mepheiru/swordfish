@@ -1,5 +1,7 @@
 #pragma once
+#define _GNU_SOURCE
 #include "args.h"
+#include <regex.h>
 #include <stdbool.h>
 #include <sys/types.h>
 
@@ -25,6 +27,16 @@ typedef struct {
     long start_time; // seconds since boot
     proc_status_t status;
 } process_info_t;
+
+typedef enum { PAT_EXACT, PAT_REGEX, PAT_SUBSTR } pattern_type_t;
+
+typedef struct {
+    char pattern[256];
+    int type;
+    regex_t regex; // <- must be regex_t
+} compiled_pattern_t;
+
+#define MAX_PATTERNS 64
 
 int scan_processes(const swordfish_args_t *args, pattern_list_t *plist);
 void drop_privileges(void);

@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include "process.h"
 #include "args.h"
 #include "main.h"
@@ -17,6 +16,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <regex.h>
 
 static bool is_proc_dir(const char *name) {
     for (; *name; ++name)
@@ -54,18 +54,6 @@ bool is_zombie_process(pid_t pid) {
     return zombie;
 }
 
-void drop_privileges(void) {
-    if (geteuid() != 0)
-        return;
-
-    uid_t uid = getuid();
-    gid_t gid = getgid();
-    if (setgid(gid) != 0 || setuid(uid) != 0) {
-        fprintf(stderr, "Failed to drop privileges: %s\n", strerror(errno));
-        exit(2);
-    }
-}
-
 static const char *get_proc_user(uid_t uid) {
     struct passwd *pw = getpwuid(uid);
     return pw ? pw->pw_name : "unknown";
@@ -98,11 +86,19 @@ static const char *get_proc_cmdline(pid_t pid) {
     if (!f)
         return "unknown";
 
-    if (fgets(cmdline, sizeof(cmdline), f))
-        cmdline[strcspn(cmdline, "\n")] = 0;
-    else
-        strcpy(cmdline, "unknown");
+    size_t len = fread(cmdline, 1, sizeof(cmdline) - 1, f);
     fclose(f);
+
+    if (len == 0) {
+        strcpy(cmdline, "unknown");
+    } else {
+        // Replace null bytes with spaces
+        for (size_t i = 0; i < len; ++i)
+            if (cmdline[i] == '\0')
+                cmdline[i] = ' ';
+        cmdline[len] = '\0';
+    }
+
     return cmdline;
 }
 
@@ -111,32 +107,90 @@ static void strtolower(char *s) {
         *s = tolower((unsigned char)*s);
 }
 
-static bool pattern_matches(const swordfish_args_t *args, const char *name, const char *cmdline,
-                            char **lower_patterns, int pattern_count) {
+static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist,
+                             compiled_pattern_t *compiled) 
+{
+    for (int i = 0; i < plist->pattern_count; ++i) {
+        const char *pat_orig = plist->patterns[i];
+        compiled_pattern_t *c = &compiled[i];
+
+        strncpy(c->pattern, pat_orig, sizeof(c->pattern)-1);
+        c->pattern[sizeof(c->pattern)-1] = '\0';
+
+        size_t len = strlen(c->pattern);
+        bool force_exact = false;
+
+        if ((args->exact_match) ||
+            (len >= 2 && c->pattern[0] == '^' && c->pattern[len-1] == '$')) {
+            force_exact = true;
+            if (!args->exact_match) {
+                c->pattern[len-1] = '\0';
+                memmove(c->pattern, c->pattern+1, strlen(c->pattern+1)+1);
+            }
+        }
+
+        if (force_exact) {
+            c->type = PAT_EXACT;
+        } else {
+            int rc = regcomp(&c->regex, c->pattern, REG_ICASE | REG_NOSUB | REG_EXTENDED);
+            if (rc != 0) {
+                char errbuf[256];
+                regerror(rc, &c->regex, errbuf, sizeof(errbuf));
+                ERROR("Invalid regex pattern \"%s\": %s", c->pattern, errbuf);
+                c->type = PAT_SUBSTR; // optional fallback, or exit if you prefer
+            } else {
+                c->type = PAT_REGEX;
+            }
+        }
+    }
+}
+
+
+static bool match_process(const char *name, const char *cmdline,
+                          compiled_pattern_t *compiled, int pattern_count) {
     char name_lc[256], cmdline_lc[256];
-
-    strncpy(name_lc, name, sizeof(name_lc));
-    name_lc[sizeof(name_lc) - 1] = '\0';
-    strncpy(cmdline_lc, cmdline, sizeof(cmdline_lc));
-    cmdline_lc[sizeof(cmdline_lc) - 1] = '\0';
-
+    strncpy(name_lc, name, sizeof(name_lc)-1);
+    name_lc[sizeof(name_lc)-1] = '\0';
+    strncpy(cmdline_lc, cmdline, sizeof(cmdline_lc)-1);
+    cmdline_lc[sizeof(cmdline_lc)-1] = '\0';
     strtolower(name_lc);
     strtolower(cmdline_lc);
 
     for (int i = 0; i < pattern_count; ++i) {
-        if ((args->exact_match && (strcmp(name_lc, lower_patterns[i]) == 0 ||
-                                   strcmp(cmdline_lc, lower_patterns[i]) == 0)) ||
-            (!args->exact_match && (strstr(name_lc, lower_patterns[i]) != NULL ||
-                                    strstr(cmdline_lc, lower_patterns[i]) != NULL))) {
-            return true;
+        compiled_pattern_t *c = &compiled[i];
+
+        switch (c->type) {
+            case PAT_EXACT:
+                if (strcmp(name_lc, c->pattern) == 0 ||
+                    strcmp(cmdline_lc, c->pattern) == 0)
+                    return true;
+                break;
+
+            case PAT_REGEX:
+                if (regexec(&c->regex, name_lc, 0, NULL, 0) == 0 ||
+                    regexec(&c->regex, cmdline_lc, 0, NULL, 0) == 0)
+                    return true;
+                break;
+
+            case PAT_SUBSTR:
+                if (strstr(name_lc, c->pattern) != NULL ||
+                    strstr(cmdline_lc, c->pattern) != NULL)
+                    return true;
+                break;
         }
     }
     return false;
 }
 
+static void free_compiled_patterns(compiled_pattern_t *compiled, int count) {
+    for (int i = 0; i < count; ++i)
+        if (compiled[i].type == PAT_REGEX)
+            regfree(&compiled[i].regex);
+}
+
 static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
-                          const swordfish_args_t *args) {
-    // Exclude patterns: skip if any exclude pattern matches
+                          const swordfish_args_t *args, compiled_pattern_t *compiled) {
+    // Exclude patterns (same as before)
     if (args->exclude_patterns && args->exclude_count > 0) {
         char name_lc[256], cmdline_lc[256];
         strncpy(name_lc, p->name, sizeof(name_lc));
@@ -148,16 +202,19 @@ static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
         for (int i = 0; i < args->exclude_count; ++i) {
             const char *ex = args->exclude_patterns[i];
             if (strstr(name_lc, ex) != NULL || strstr(cmdline_lc, ex) != NULL)
-                return false; // Exclude match: skip
+                return false;
         }
     }
+
     for (int i = 0; i < plist->pattern_count; ++i) {
         if (plist->pattern_is_pid[i] && is_all_digits(plist->patterns[i]) &&
             atoi(plist->patterns[i]) == p->pid)
             return true;
     }
-    return pattern_matches(args, p->name, p->cmdline, plist->patterns, plist->pattern_count);
+
+    return match_process(p->name, p->cmdline, compiled, plist->pattern_count);
 }
+
 
 static void print_proc_info(const process_info_t *p, int sig, const swordfish_args_t *args,
                             const char *prefix, bool include_signal) {
@@ -314,7 +371,7 @@ static bool has_root_process(int count, int *selected, process_info_t *matches, 
 }
 
 static int find_matching_processes(const swordfish_args_t *args, pattern_list_t *plist,
-                                   process_info_t *matches) {
+                                   process_info_t *matches, compiled_pattern_t *compiled) {
     DIR *proc = opendir("/proc");
     if (!proc) {
         perror("opendir /proc");
@@ -351,7 +408,7 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
 
         if (args->user && strcasecmp(p.owner, args->user) != 0)
             continue;
-        if (!entry_matches(&p, plist, args))
+        if (!entry_matches(&p, plist, args, compiled))
             continue;
 
         if (matched < MAX_MATCHES)
@@ -408,11 +465,10 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
 
     int sig = args->do_kill ? SIGKILL : args->sig;
 
-    if (!args->auto_confirm) {
-        printf("The following processes will be killed (signal %d - %s):\n", sig, strsignal(sig));
+    if (args->do_term || (args->do_kill && !args->auto_confirm)) {
         for (int i = 0; i < count; ++i)
             print_proc_info(&matches[selected[i]], sig, args, "  PID ", false);
-
+        printf("The processe(s) above will be affected (signal %d - %s):\n", sig, strsignal(sig));
         printf("Proceed? [y/N]: ");
         char confirm[8] = {0};
         fgets(confirm, sizeof(confirm), stdin);
@@ -445,10 +501,13 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
 }
 
 int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
+    compiled_pattern_t compiled[MAX_PATTERNS];
+    compile_patterns(args, plist, compiled);
+
     int tries = 0;
     while (1) {
         process_info_t matches[MAX_MATCHES];
-        int matched = find_matching_processes(args, plist, matches);
+        int matched = find_matching_processes(args, plist, matches, compiled);
         // Sort if requested
         if (args->sort_mode == SWSORT_CPU)
             qsort(matches, matched, sizeof(process_info_t), cmp_cpu);
@@ -483,5 +542,7 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
         sleep(args->retry_time);
         tries++;
     }
+
+    free_compiled_patterns(compiled, plist->pattern_count);
     return 0;
 }

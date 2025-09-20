@@ -9,8 +9,7 @@
 
 #include "args.h"
 #include "process.h"
-
-// TODO: add proper piping support
+#include "main.h"
 
 int process_requires_sudo(const char *pattern) {
     DIR *proc = opendir("/proc");
@@ -72,14 +71,37 @@ int process_requires_sudo(const char *pattern) {
     return 0; // All matched processes are owned
 }
 
-int main(int argc, char **argv) {
+int main(int arg_count, char **argv) {
+    // If invalid args, return error code
     swordfish_args_t args;
-    int ret = parse_args(argc, argv, &args);
+    int ret = parse_args(arg_count, argv, &args);
     if (ret)
         return ret;
-    drop_privileges();
-    int pattern_count = argc - args.pattern_start_idx;
+
+    
+    int pattern_count = arg_count - args.pattern_start_idx;
     char **patterns = &argv[args.pattern_start_idx];
+
+    // if args contains an empty string, ask user for confirmation
+    bool has_empty_pattern = false;
+    for (int i = 0; i < pattern_count; ++i) {
+        if (patterns[i][0] == '\0') {
+            has_empty_pattern = true;
+            break;
+        }
+    }
+
+    if (has_empty_pattern && !args.auto_confirm) {
+        WARN("Empty pattern specified. \nThis may match all processes and could be " COLOR_WARN "dangerous!" COLOR_RESET);
+        printf("Proceed? [y/N]: ");
+        char confirm[8] = {0};
+        fgets(confirm, sizeof(confirm), stdin);
+        if (tolower(confirm[0]) != 'y') {
+            printf("Aborted\n");
+            return 1;
+        }
+    }
+
     bool pattern_is_pid[pattern_count];
     for (int i = 0; i < pattern_count; ++i)
         pattern_is_pid[i] = is_all_digits(patterns[i]);

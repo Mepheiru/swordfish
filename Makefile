@@ -1,5 +1,5 @@
 CC ?= gcc
-CFLAGS ?= -Wall -Wextra -O2
+CFLAGS ?= -Wall -Wextra -O2 -std=gnu11
 LDFLAGS ?= 
 
 PREFIX ?= /usr/local
