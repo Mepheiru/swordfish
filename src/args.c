@@ -12,6 +12,22 @@
 #define NSIG 65
 #endif
 
+// TODO: add back "-s <sig-name>" to the list of arguments
+// TODO: refactor grouped arguments to be more stable
+// TODO: refactor this entire file to be better in general
+// TODO: add "--exclude <pattern>" to the list of arguments
+// TODO: add regex support
+// TODO: add "-t" argument (always select the top process)
+// TODO: json/csv export option (because why not lol)
+// TODO: add "-r <time>" argument (retry on failure after waiting <time> seconds)
+// TODO: add "-g" argument (try gracefull shutdown first, then try to SIGKILL if needed)
+// TODO: add a config file for default options
+// TODO: update verbose output to include cpu, ram, age (new metrics)
+
+// Maybe make "-k" sigterm and "-K" sigkill?
+// Maybe warn if the process list contains a root-owned process?
+// Maybe add hooks for pre- and post-kill scripts (like logging or notifications)?
+
 const swordfish_flag_desc_t swordfish_flags[] = {
     {"-S", "Select which PIDs to kill (interactive prompt)"},
     {"-k", "Actually send the signal (default is to only list matches)"},

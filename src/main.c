@@ -10,6 +10,8 @@
 #include "args.h"
 #include "process.h"
 
+// TODO: add proper piping support
+
 int process_requires_sudo(const char *pattern) {
     DIR *proc = opendir("/proc");
     if (!proc)
