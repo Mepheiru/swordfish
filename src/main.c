@@ -8,7 +8,6 @@
 #include <unistd.h>
 
 #include "args.h"
-#include "main.h"
 #include "process.h"
 
 int process_requires_sudo(const char *pattern) {

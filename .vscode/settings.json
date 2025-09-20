@@ -2,6 +2,7 @@
   "files.associations": {
     "*.cs": "csharp",
     "args.h": "c",
-    "ctype.h": "c"
+    "ctype.h": "c",
+    "process.h": "c"
   }
 }
