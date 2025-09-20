@@ -6,6 +6,12 @@
 #define MAX_MATCHES 1024
 
 typedef struct {
+    uid_t uid;
+    char state;
+    char threads[32];
+} proc_status_t;
+
+typedef struct {
     char **patterns;
     bool *pattern_is_pid;
     int pattern_count;
@@ -15,19 +21,10 @@ typedef struct {
     pid_t pid;
     char name[256];
     char owner[64];
-} proc_entry_t;
-
-typedef struct {
-    uid_t uid;
-    char state;
-    char threads[32];
-} proc_status_t;
-
-typedef struct {
-    pid_t pid;
-    char name[256];
-    char owner[64];
     char cmdline[256];
+    double cpu;      // percent
+    long ram;        // kB
+    long start_time; // seconds since boot
     proc_status_t status;
 } process_info_t;
 

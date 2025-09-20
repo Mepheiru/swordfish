@@ -21,6 +21,7 @@ const swordfish_flag_desc_t swordfish_flags[] = {
     {"-<SIGNAL>", "Shorthand to specify signal (e.g. -9, -KILL)"},
     {"-u <USER>", "Filter processes by username"},
     {"-v", "Enable verbose output"},
+    {"--sort <cpu|ram|age>", "Sort process list by CPU, RAM, or age"},
     {"--help", "Show this help message and exit"},
 };
 const size_t swordfish_flags_count = sizeof(swordfish_flags) / sizeof(swordfish_flags[0]);
@@ -46,9 +47,10 @@ void usage(const char *prog) {
             "Usage: %s -[Skxypu:v] pattern [pattern ...]\n",
             prog);
     for (size_t i = 0; i < swordfish_flags_count; ++i) {
-        fprintf(stderr, "  %-14s: %s\n", swordfish_flags[i].flag, swordfish_flags[i].desc);
+        // Indent 22 spaces for alignment
+        fprintf(stderr, "  %-22s: %s\n", swordfish_flags[i].flag, swordfish_flags[i].desc);
     }
-    fprintf(stderr, "  pattern       : One or more process name patterns\n");
+    fprintf(stderr, "  pattern               : One or more process name patterns\n");
     fprintf(stderr, "For more information, please run '%s --help'\n", prog);
 }
 
@@ -103,15 +105,13 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     args->auto_confirm = false;
     args->user = NULL;
     args->do_verbose = false;
+    args->sort_mode = SWSORT_NONE;
+    args->sort_key = NULL;
 
-    // Check for --help before getopt
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--help") == 0) {
-            help(argv[0]);
-            exit(0);
-        }
-    }
-
+    static struct option longopts[] = {
+        {"sort", required_argument, NULL, 1000}, {"help", no_argument, NULL, 1001}, {0, 0, 0, 0}};
+    int opt;
+    int longindex = 0;
     // Support -<SIGNAL> as shorthand (e.g. -9, -KILL, -TERM)
     if (argc > 1 && argv[1][0] == '-' && argv[1][1] && argv[1][1] != '-' &&
         (isdigit(argv[1][1]) || isalpha(argv[1][1]))) {
@@ -127,9 +127,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
             argc--;
         }
     }
-
-    int opt;
-    while ((opt = getopt(argc, argv, "Skxypu:v")) != -1) {
+    while ((opt = getopt_long(argc, argv, "Skxypu:v", longopts, &longindex)) != -1) {
         switch (opt) {
         case 'S':
             args->select_mode = true;
@@ -152,26 +150,39 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
         case 'v':
             args->do_verbose = true;
             break;
+        case 1000: // --sort
+            args->sort_key = optarg;
+            if (strcmp(args->sort_key, "cpu") == 0)
+                args->sort_mode = SWSORT_CPU;
+            else if (strcmp(args->sort_key, "ram") == 0)
+                args->sort_mode = SWSORT_RAM;
+            else if (strcmp(args->sort_key, "age") == 0)
+                args->sort_mode = SWSORT_AGE;
+            else {
+                fprintf(stderr, "Unknown sort key: %s\n", args->sort_key);
+                usage(argv[0]);
+                return 2;
+            }
+            break;
+        case 1001: // --help
+            help(argv[0]);
+            exit(0);
         default:
             usage(argv[0]);
             return 2;
         }
     }
-
     if (optind >= argc) {
         usage(argv[0]);
         return 2;
     }
-
     args->pattern_start_idx = optind;
     // Only override sig if not already set by -<SIGNAL>
     if (!args->do_kill || (args->sig_str && strcmp(args->sig_str, "TERM") == 0))
         args->sig = get_signal(args->sig_str);
-
     if (args->sig == -1) {
         fprintf(stderr, "Unknown signal: %s\n", args->sig_str);
         return 2;
     }
-
     return 0;
 }

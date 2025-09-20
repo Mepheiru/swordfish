@@ -11,7 +11,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/sysinfo.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 static bool is_proc_dir(const char *name) {
@@ -149,14 +152,131 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
         printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
-        printf("\n");
     } else {
         printf("%s%d (%s) owned by ", prefix, p->pid, p->name);
         printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
-        printf("\n");
     }
+    // Append sort metric if --sort is used
+    if (args->sort_mode == SWSORT_CPU)
+        printf(" [%.1f%%]", p->cpu);
+    else if (args->sort_mode == SWSORT_RAM)
+        printf(" [%.1f MB]", p->ram / 1024.0);
+    else if (args->sort_mode == SWSORT_AGE) {
+        long uptime = 0;
+        FILE *f = fopen("/proc/uptime", "r");
+        if (f) {
+            double up = 0;
+            if (fscanf(f, "%lf", &up) == 1)
+                uptime = (long)up;
+            fclose(f);
+        }
+        long age_min = (uptime - (p->start_time / sysconf(_SC_CLK_TCK))) / 60;
+        printf(" [%ld min]", age_min > 0 ? age_min : 0);
+    }
+    printf("\n");
+}
+
+static long get_proc_start_time(pid_t pid) {
+    char stat_path[PATH_MAX], buf[1024];
+    snprintf(stat_path, sizeof(stat_path), "/proc/%d/stat", pid);
+    FILE *f = fopen(stat_path, "r");
+    if (!f)
+        return 0;
+    if (!fgets(buf, sizeof(buf), f)) {
+        fclose(f);
+        return 0;
+    }
+    fclose(f);
+    char *p = buf;
+    int field = 1;
+    long start_time = 0;
+    while (field <= 22 && *p) {
+        if (field == 22) {
+            sscanf(p, "%ld", &start_time);
+            break;
+        }
+        if (*p == ' ')
+            field++;
+        p++;
+    }
+    return start_time;
+}
+
+static long get_proc_ram_kb(pid_t pid) {
+    char status_path[PATH_MAX], line[256];
+    snprintf(status_path, sizeof(status_path), "/proc/%d/status", pid);
+    FILE *f = fopen(status_path, "r");
+    if (!f)
+        return 0;
+    long ram = 0;
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "VmRSS:", 6) == 0) {
+            sscanf(line, "VmRSS: %ld", &ram);
+            break;
+        }
+    }
+    fclose(f);
+    return ram;
+}
+
+static double get_proc_cpu(pid_t pid) {
+    char stat_path[PATH_MAX], buf[1024];
+    snprintf(stat_path, sizeof(stat_path), "/proc/%d/stat", pid);
+    FILE *f = fopen(stat_path, "r");
+    if (!f)
+        return 0.0;
+    if (!fgets(buf, sizeof(buf), f)) {
+        fclose(f);
+        return 0.0;
+    }
+    fclose(f);
+    unsigned long utime = 0, stime = 0, cutime = 0, cstime = 0, starttime = 0;
+    int field = 1;
+    char *p = buf;
+    while (field <= 22 && *p) {
+        if (field == 14)
+            utime = strtoul(p, NULL, 10);
+        else if (field == 15)
+            stime = strtoul(p, NULL, 10);
+        else if (field == 16)
+            cutime = strtoul(p, NULL, 10);
+        else if (field == 17)
+            cstime = strtoul(p, NULL, 10);
+        else if (field == 22)
+            starttime = strtoul(p, NULL, 10);
+        if (*p == ' ')
+            field++;
+        p++;
+    }
+    double total_time = utime + stime + cutime + cstime;
+    double uptime_seconds = 0;
+    FILE *uf = fopen("/proc/uptime", "r");
+    if (uf) {
+        double up = 0;
+        if (fscanf(uf, "%lf", &up) == 1)
+            uptime_seconds = up;
+        fclose(uf);
+    }
+    long ticks_per_sec = sysconf(_SC_CLK_TCK);
+    double seconds = uptime_seconds - ((double)starttime / ticks_per_sec);
+    if (seconds <= 0)
+        return 0.0;
+    return 100.0 * (total_time / ticks_per_sec) / seconds;
+}
+
+static int cmp_cpu(const void *a, const void *b) {
+    const process_info_t *pa = a, *pb = b;
+    return (pb->cpu > pa->cpu) - (pb->cpu < pa->cpu);
+}
+static int cmp_ram(const void *a, const void *b) {
+    const process_info_t *pa = a, *pb = b;
+    return (pb->ram > pa->ram) - (pb->ram < pa->ram);
+}
+static int cmp_age(const void *a, const void *b) {
+    const process_info_t *pa = a, *pb = b;
+    return (pa->start_time > pb->start_time) - (pa->start_time < pb->start_time);
 }
 
 static int find_matching_processes(const swordfish_args_t *args, pattern_list_t *plist,
@@ -191,6 +311,9 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         strncpy(p.cmdline, get_proc_cmdline(p.pid), sizeof(p.cmdline));
         read_status_field(p.pid, &p.status);
         strncpy(p.owner, get_proc_user(p.status.uid), sizeof(p.owner));
+        p.ram = get_proc_ram_kb(p.pid);
+        p.start_time = get_proc_start_time(p.pid);
+        p.cpu = get_proc_cpu(p.pid);
 
         if (args->user && strcasecmp(p.owner, args->user) != 0)
             continue;
@@ -282,6 +405,14 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
     int matched = find_matching_processes(args, plist, matches);
     if (matched < 0)
         return 2;
+
+    // Sort if requested
+    if (args->sort_mode == SWSORT_CPU)
+        qsort(matches, matched, sizeof(process_info_t), cmp_cpu);
+    else if (args->sort_mode == SWSORT_RAM)
+        qsort(matches, matched, sizeof(process_info_t), cmp_ram);
+    else if (args->sort_mode == SWSORT_AGE)
+        qsort(matches, matched, sizeof(process_info_t), cmp_age);
 
     if (args->print_pids_only) {
         for (int i = 0; i < matched; ++i)

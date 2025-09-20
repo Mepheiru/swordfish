@@ -2,6 +2,9 @@
 #include <signal.h>
 #include <stdbool.h>
 
+// Sorting modes for --sort
+typedef enum { SWSORT_NONE = 0, SWSORT_CPU, SWSORT_RAM, SWSORT_AGE } swordfish_sort_mode_t;
+
 typedef struct {
     const char *sig_str;
     int sig;
@@ -13,6 +16,8 @@ typedef struct {
     bool do_verbose;
     const char *user;
     int pattern_start_idx;
+    swordfish_sort_mode_t sort_mode;
+    const char *sort_key;
 } swordfish_args_t;
 
 typedef struct {
