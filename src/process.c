@@ -125,12 +125,12 @@ static const char *get_proc_threads(pid_t pid)
   return "unknown";
 }
 
-static bool pattern_matches(const swordfish_args_t *args, const char *name, char **patterns, int pattern_count)
+static bool pattern_matches(const swordfish_args_t *args, const char *name, const char *cmdline, char **patterns, int pattern_count)
 {
   for (int i = 0; i < pattern_count; ++i)
   {
-    if ((args->exact_match && strcasecmp(name, patterns[i]) == 0) ||
-        (!args->exact_match && substring_match(name, patterns[i])))
+    if ((args->exact_match && (strcasecmp(name, patterns[i]) == 0 || strcasecmp(cmdline, patterns[i]) == 0)) ||
+        (!args->exact_match && (substring_match(name, patterns[i]) || substring_match(cmdline, patterns[i]))))
     {
       return true;
     }
@@ -139,16 +139,18 @@ static bool pattern_matches(const swordfish_args_t *args, const char *name, char
 }
 
 // Helper: check if string is all digits
-static bool is_all_digits(const char *s)
+bool is_all_digits(const char *s)
 {
+  if (!s || *s == '\0')
+    return false;
   for (; *s; ++s)
     if (!isdigit(*s))
       return false;
-  return *s == '\0';
+  return true;
 }
 
 // Helper: check if entry matches any pattern (PID or name)
-static bool entry_matches(const struct dirent *entry, const char *name, char **patterns, bool *pattern_is_pid, int pattern_count, const swordfish_args_t *args)
+static bool entry_matches(const struct dirent *entry, const char *name, const char *cmdline, char **patterns, bool *pattern_is_pid, int pattern_count, const swordfish_args_t *args)
 {
   for (int i = 0; i < pattern_count; ++i)
   {
@@ -158,7 +160,7 @@ static bool entry_matches(const struct dirent *entry, const char *name, char **p
         return true;
     }
   }
-  return pattern_matches(args, name, patterns, pattern_count);
+  return pattern_matches(args, name, cmdline, patterns, pattern_count);
 }
 
 // Helper: fill matches array, return number matched
@@ -189,6 +191,19 @@ static int find_matching_processes(const swordfish_args_t *args, char **patterns
     }
     fclose(f);
     name[strcspn(name, "\n")] = 0;
+    // Read argv[0] from /proc/[pid]/cmdline
+    char cmdline[256] = {0};
+    char cmdline_path[PATH_MAX];
+    snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%s/cmdline", entry->d_name);
+    FILE *cf = fopen(cmdline_path, "r");
+    if (cf)
+    {
+      if (fgets(cmdline, sizeof(cmdline), cf))
+      {
+        // cmdline is null-separated, just use the first string
+      }
+      fclose(cf);
+    }
     char status_path[PATH_MAX];
     snprintf(status_path, sizeof(status_path), "/proc/%s/status", entry->d_name);
     uid_t uid = -1;
@@ -208,7 +223,7 @@ static int find_matching_processes(const swordfish_args_t *args, char **patterns
     }
     if (args->user && strcasecmp(get_proc_user(uid), args->user) != 0)
       continue;
-    if (entry_matches(entry, name, patterns, pattern_is_pid, pattern_count, args))
+    if (entry_matches(entry, name, cmdline, patterns, pattern_is_pid, pattern_count, args))
     {
       if (matched < MAX_MATCHES)
       {
