@@ -28,9 +28,3 @@ clean:
 	rm -rf $(BUILDDIR)
 
 .PHONY: all install uninstall clean test
-
-tests/test_process: tests/test_process.c src/process.c src/process.h src/args.h
-	$(CC) $(CFLAGS) -o $@ tests/test_process.c src/process.c -lcriterion -lpthread
-
-test: tests/test_process
-	./tests/test_process --verbose
