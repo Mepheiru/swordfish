@@ -19,6 +19,7 @@ Swordfish was made to make managing processes easier. It started as a project fo
 - Sorting by RAM, CPU, or age
 - Pattern exclusions (`--exclude`)
 - Built-in retry functionality (`-r <time>`)
+- Auto-completions for Bash, Fish, and Zsh
 
 More can be found on the help page
 ###
@@ -74,7 +75,12 @@ make
 - Config file support for default flags and settings
 - Improved piping support for safer read-only mode
 - Advanced regex features
-- Additional Scripting hooks
+- Additional scripting hooks
+- Process tree support
+- "Hide root processes" argument
+- "Version" argument
+- "Spy" argument. Watch processes update live
+
 
 ## Possible Future Additions
 - JSON/CSV export of process lists
