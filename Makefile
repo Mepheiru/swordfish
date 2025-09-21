@@ -25,15 +25,23 @@ $(BUILDDIR):
 # Compile each .c file into an object file with progress counter
 $(BUILDDIR)/%.o: src/%.c $(HEADERS) | $(BUILDDIR)
 	@$(eval COUNT=$(shell echo $$(($(COUNT)+1))))
-	@printf "[%*d/%d] Compiling %s...\n" $(WIDTH) $(COUNT) $(TOTAL) $<
+	@printf "[%*d/%d] Compiling %s\n" $(WIDTH) $(COUNT) $(TOTAL) $<
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Link object files
 $(TARGET): $(OBJ)
 	@$(eval COUNT=$(shell echo $$(($(COUNT)+1))))
-	@printf "[%*d/%d] Linking %s...\n" $(WIDTH) $(COUNT) $(TOTAL) $@
+	@printf "[%*d/%d] Linking %s\n" $(WIDTH) $(COUNT) $(TOTAL) $@
 	@$(CC) $(OBJ) $(LDFLAGS) -o $@
+	@echo "Cleaning up..."
+	@rm -f $(OBJ)
 	@echo "Build complete! Located in $(BUILDDIR)"
+
+# Separate step for cleaning up object files
+.PHONY: cleanup_objs
+cleanup_objs:
+	@echo "Cleaning up..."
+	@rm -f $(OBJ)
 
 install: $(TARGET)
 	install -Dm755 $(TARGET) $(DESTDIR)$(BINDIR)/swordfish

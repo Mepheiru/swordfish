@@ -242,9 +242,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
 
     // Step 4: Ensure at least one pattern is provided
     if (argc >= 2 && optind >= argc) {
-        printf("%d\n", argc);
-
-        fprintf(stderr, "ERROR: Missing process name pattern(s)\n");
+        ERROR("Missing process name pattern(s)");
         return 2;
     }
     
