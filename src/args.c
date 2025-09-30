@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <strings.h>
 
 #ifndef NSIG
 #define NSIG 65
@@ -227,11 +228,11 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
         break;
 
         case 1003: // --pre-hook
-            safe_strcpy(args->pre_hook, optarg, sizeof(args->pre_hook));
+            safe_strncpy(args->pre_hook, optarg, sizeof(args->pre_hook));
         break;
 
         case 1004: // --post-hook
-            safe_strcpy(args->post_hook, optarg, sizeof(args->post_hook));
+            safe_strncpy(args->post_hook, optarg, sizeof(args->post_hook));
         break;
 
         default:
