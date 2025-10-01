@@ -16,6 +16,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 /* Check if a directory name is a valid process directory */
 static bool is_proc_dir(const char *name) {
@@ -407,35 +408,54 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
 
     int matched = 0;
     struct dirent *entry;
+    pid_t self_pid = getpid();
+
     while ((entry = readdir(proc))) {
         if (!is_proc_dir(entry->d_name))
             continue;
 
+        pid_t pid = atoi(entry->d_name);
+        if (pid == self_pid)
+            continue;
+
         process_info_t p = {0};
-        p.pid = atoi(entry->d_name);
+        p.pid = pid;
 
-        // Skip the scanner process itself
-        if (p.pid == getpid())
-            continue;
+        // Read /proc/<pid>/stat for name, start time, and UID (via /proc/<pid>/status)
+        char stat_path[PATH_MAX], status_path[PATH_MAX];
+        snprintf(stat_path, sizeof(stat_path), "/proc/%d/stat", pid);
+        snprintf(status_path, sizeof(status_path), "/proc/%d/status", pid);
 
-        char comm_path[PATH_MAX];
-        snprintf(comm_path, sizeof(comm_path), "/proc/%s/comm", entry->d_name);
-        FILE *f = fopen(comm_path, "r");
-        if (!f)
-            continue;
-        if (!fgets(p.name, sizeof(p.name), f)) {
-            fclose(f);
-            continue;
+        FILE *fstat = fopen(stat_path, "r");
+        if (!fstat) continue;
+
+        // read comm (2nd field) and skip rest
+        char comm_buf[256], state;
+        unsigned long utime, stime;
+        long rss;
+        fscanf(fstat, "%*d (%255[^)]) %c %*s %*s %*s %*s %*s %*s %*s %*s %*s %lu %lu %*s %*s %*s %*s %*s %ld",
+               comm_buf, &state, &utime, &stime, &rss);
+        fclose(fstat);
+
+        safe_strncpy(p.name, comm_buf, sizeof(p.name));
+
+        // Read UID from /proc/<pid>/status
+        FILE *fstatus = fopen(status_path, "r");
+        if (!fstatus) continue;
+
+        char line[256];
+        uid_t uid = -1;
+        while (fgets(line, sizeof(line), fstatus)) {
+            if (sscanf(line, "Uid:\t%u", &uid) == 1) break;
         }
-        fclose(f);
-        p.name[strcspn(p.name, "\n")] = 0;
+        fclose(fstatus);
 
-        safe_strncpy(p.cmdline, get_proc_cmdline(p.pid), sizeof(p.cmdline));
-        read_status_field(p.pid, &p.status);
-        safe_strncpy(p.owner, get_proc_user(p.status.uid), sizeof(p.owner));
-        p.ram = get_proc_ram_kb(p.pid);
-        p.start_time = get_proc_start_time(p.pid);
-        p.cpu = get_proc_cpu(p.pid);
+        safe_strncpy(p.owner, get_proc_user(uid), sizeof(p.owner));
+        p.cmdline[0] = '\0';  // optionally lazy-load cmdline only if needed
+
+        p.ram = rss / 1024;  // convert pages to KB assuming page size = 1KB (approx)
+        p.start_time = get_proc_start_time(pid);
+        p.cpu = get_proc_cpu(pid);
 
         if (args->user && strcasecmp(p.owner, args->user) != 0)
             continue;
@@ -567,18 +587,21 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
     while (1) {
         process_info_t matches[MAX_MATCHES];
         int matched = find_matching_processes(args, plist, matches, compiled);
-        // Sort if requested
-        if (args->sort_mode == SWSORT_CPU)
-            qsort(matches, matched, sizeof(process_info_t), cmp_cpu);
-        else if (args->sort_mode == SWSORT_RAM)
-            qsort(matches, matched, sizeof(process_info_t), cmp_ram);
-        else if (args->sort_mode == SWSORT_AGE)
-            qsort(matches, matched, sizeof(process_info_t), cmp_age);
+
+        // Only sort if there are multiple matches
+        if (matched > 1) {
+            switch (args->sort_mode) {
+                case SWSORT_CPU: qsort(matches, matched, sizeof(process_info_t), cmp_cpu); break;
+                case SWSORT_RAM: qsort(matches, matched, sizeof(process_info_t), cmp_ram); break;
+                case SWSORT_AGE: qsort(matches, matched, sizeof(process_info_t), cmp_age); break;
+                default: break;  // handles SWSORT_NONE and any future values
+            }
+        }
 
         if (args->print_pids_only) {
             for (int i = 0; i < matched; ++i)
                 printf("%d\n", matches[i].pid);
-            return matched > 0 ? 0 : 1;
+            break;  // no need for ternary here, just break
         }
 
         int selected[MAX_MATCHES], count = 0;
@@ -592,14 +615,17 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
                     selected[count++] = i;
             }
             confirm_and_act(args, count, selected, matches);
-        } else {
+        } else if (tries == 0) {
             printf("No processes matched\n");
         }
 
         if (args->retry_time <= 0)
             break;
-        sleep(args->retry_time);
-        tries++;
+
+        if (matched == 0 || args->retry_time > 0) {
+            sleep(args->retry_time);
+            tries++;
+        }
     }
 
     free_compiled_patterns(compiled, plist->pattern_count);
