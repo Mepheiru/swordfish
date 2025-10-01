@@ -2,6 +2,7 @@
 #include "args.h"
 #include "hooks.h"
 #include "main.h"
+
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -16,12 +17,14 @@
 #include <time.h>
 #include <unistd.h>
 
+/* Check if a directory name is a valid process directory */
 static bool is_proc_dir(const char *name) {
     for (; *name; ++name)
         if (!isdigit(*name))
             return false;
     return true;
 }
+
 
 bool is_all_digits(const char *s) {
     if (!s || *s == '\0')
@@ -57,6 +60,8 @@ static const char *get_proc_user(uid_t uid) {
     return pw ? pw->pw_name : "unknown";
 }
 
+/* Reads the /proc/[pid]/status file and extracts 
+   UID, State, and Threads */
 static bool read_status_field(pid_t pid, proc_status_t *status) {
     char path[PATH_MAX], line[256];
     snprintf(path, sizeof(path), "/proc/%d/status", pid);
@@ -76,6 +81,7 @@ static bool read_status_field(pid_t pid, proc_status_t *status) {
     return true;
 }
 
+/* Get the arguments that the process was started with */
 static const char *get_proc_cmdline(pid_t pid) {
     static char cmdline[256];
     char path[PATH_MAX];
@@ -100,7 +106,7 @@ static const char *get_proc_cmdline(pid_t pid) {
     return cmdline;
 }
 
-static void strtolower(char *s) {
+static void str_to_lower(char *s) {
     for (; *s; ++s)
         *s = tolower((unsigned char)*s);
 }
@@ -113,6 +119,7 @@ bool is_interactive(void) {
     return isatty(STDOUT_FILENO) && isatty(STDIN_FILENO);
 }
 
+/* Parse and compile REGEX patterns */
 static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist,
                              compiled_pattern_t *compiled) {
     for (int i = 0; i < plist->pattern_count; ++i) {
@@ -150,6 +157,7 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
     }
 }
 
+/* Match a process against compiled patterns */
 static bool match_process(const char *name, const char *cmdline, compiled_pattern_t *compiled,
                           int pattern_count) {
     char name_lc[256], cmdline_lc[256];
@@ -157,8 +165,8 @@ static bool match_process(const char *name, const char *cmdline, compiled_patter
     name_lc[sizeof(name_lc) - 1] = '\0';
     safe_strncpy(cmdline_lc, cmdline, sizeof(cmdline_lc) - 1);
     cmdline_lc[sizeof(cmdline_lc) - 1] = '\0';
-    strtolower(name_lc);
-    strtolower(cmdline_lc);
+    str_to_lower(name_lc);
+    str_to_lower(cmdline_lc);
 
     for (int i = 0; i < pattern_count; ++i) {
         compiled_pattern_t *c = &compiled[i];
@@ -184,12 +192,14 @@ static bool match_process(const char *name, const char *cmdline, compiled_patter
     return false;
 }
 
+/* Free compiled regex patterns to not waste memory */
 static void free_compiled_patterns(compiled_pattern_t *compiled, int count) {
     for (int i = 0; i < count; ++i)
         if (compiled[i].type == PAT_REGEX)
             regfree(&compiled[i].regex);
 }
 
+/* Check if a process matches the given REGEX patterns */
 static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
                           const swordfish_args_t *args, compiled_pattern_t *compiled) {
     // Exclude patterns (same as before)
@@ -199,8 +209,8 @@ static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
         name_lc[sizeof(name_lc) - 1] = '\0';
         safe_strncpy(cmdline_lc, p->cmdline, sizeof(cmdline_lc));
         cmdline_lc[sizeof(cmdline_lc) - 1] = '\0';
-        strtolower(name_lc);
-        strtolower(cmdline_lc);
+        str_to_lower(name_lc);
+        str_to_lower(cmdline_lc);
         for (int i = 0; i < args->exclude_count; ++i) {
             const char *ex = args->exclude_patterns[i];
             if (strstr(name_lc, ex) != NULL || strstr(cmdline_lc, ex) != NULL)
@@ -217,13 +227,14 @@ static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
     return match_process(p->name, p->cmdline, compiled, plist->pattern_count);
 }
 
+/* Helper for printing proc info based on the display mode */
 static void print_proc_info(const process_info_t *p, int sig, const swordfish_args_t *args,
                             const char *prefix, bool include_signal) {
     bool tty = is_output_terminal();
 
     const char *owner_fmt = "%s";
     if (tty && strcmp(p->owner, "root") == 0)
-        owner_fmt = "\033[33m%s\033[0m"; // only color if terminal
+        owner_fmt = "\033[33m%s\033[0m"; // only color if terminal supports it
 
     long uptime = 0;
     FILE *f = fopen("/proc/uptime", "r");
@@ -235,8 +246,9 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
     }
     long age_min = (uptime - (p->start_time / sysconf(_SC_CLK_TCK))) / 60;
 
+    // Verbose
     if (args->do_verbose || !tty) {
-        printf("%s%d (%s) cmdl (%s) threads (%s) owned by ", prefix, p->pid, p->name, p->cmdline,
+        printf("%s %d (%s) cmdl (%s) threads (%s) owned by ", prefix, p->pid, p->name, p->cmdline,
                p->status.threads);
         printf(owner_fmt, p->owner);
         if (tty) {
@@ -245,8 +257,10 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
         }
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
-    } else {
-        printf("%s%d (%s) owned by ", prefix, p->pid, p->name);
+    }
+    // Normal 
+    else {
+        printf("%s %d (%s) owned by ", prefix, p->pid, p->name);
         printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
@@ -365,6 +379,7 @@ static int cmp_age(const void *a, const void *b) {
     return (pa->start_time > pb->start_time) - (pa->start_time < pb->start_time);
 }
 
+/* Check if any selected(arg2) process is owned by root */
 static bool has_root_process(int count, int *selected, process_info_t *matches, int matched_total) {
     if (count > 0 && selected) {
         // Check only selected processes
@@ -380,6 +395,8 @@ static bool has_root_process(int count, int *selected, process_info_t *matches, 
     return false;
 }
 
+/* Find all processes matching the given patterns
+   Returns the number of matching processes */
 static int find_matching_processes(const swordfish_args_t *args, pattern_list_t *plist,
                                    process_info_t *matches, compiled_pattern_t *compiled) {
     DIR *proc = opendir("/proc");
@@ -433,6 +450,7 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
     return matched;
 }
 
+/* Interactive process selection for "-S" argument */
 static void select_processes(int matched, process_info_t *matches, int *selected, int *count,
                              const swordfish_args_t *args, int sig) {
     if (!is_interactive()) {
@@ -476,6 +494,7 @@ static void select_processes(int matched, process_info_t *matches, int *selected
     }
 }
 
+/* Confirm and act on selected processes. Text is displayed based on mode */
 static void confirm_and_act(const swordfish_args_t *args, int count, int *selected,
                             process_info_t *matches) {
     // Show warning if any selected process is root
@@ -486,20 +505,24 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
     if (count == 0)
         return;
 
+    // Use SIGKILL if -K, otherwise use whatever signal is in args->sig
     int sig = args->do_kill ? SIGKILL : args->sig;
 
     // Pre-kill hook
     run_hook(args->pre_hook, matches[selected[0]].pid, matches[selected[0]].name);
 
-    if ((args->do_term || (args->do_kill && !args->auto_confirm)) && is_interactive()) {
+    // Confirm mode
+    if (!args->run_static && !args->auto_confirm && is_interactive()) {
         for (int i = 0; i < count; ++i)
-            print_proc_info(&matches[selected[i]], sig, args, "  PID ", false);
+            print_proc_info(&matches[selected[i]], sig, args, "  PID", false);
 
         if (count == 1)
-            printf("The process above will be affected (signal %d - %s):\n", sig, strsignal(sig));
+            printf("The process above will be affected (signal %d - %s)\n", sig, strsignal(sig));
         else
-            printf("The processes above will be affected (signal %d - %s):\n", sig, strsignal(sig));
+            printf("The processes above will be affected (signal %d - %s)\n", sig, strsignal(sig));
         printf("Proceed? [y/N]: ");
+
+        // If the user confirms, proceed to the for loop below
         char confirm[8] = {0};
         fgets(confirm, sizeof(confirm), stdin);
         if (tolower(confirm[0]) != 'y') {
@@ -507,6 +530,16 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
         }
     }
 
+    // If the user has not specified any signal, just print proc info
+    if (args->run_static) {
+        for (int i = 0; i < count; ++i) {
+            int idx = selected[i];
+            print_proc_info(&matches[idx], sig, args, "", false);
+        }
+        return;
+    }
+
+    // Else, act on selected processes
     for (int i = 0; i < count; ++i) {
         int idx = selected[i];
         if (is_zombie_process(matches[idx].pid)) {
@@ -515,16 +548,12 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
             continue;
         }
 
-        if (!args->do_term && !args->do_kill) {
-            print_proc_info(&matches[idx], sig, args, "", false);
-            continue;
-        }
-
-        if (kill(matches[idx].pid, sig) == 0)
-            print_proc_info(&matches[idx], sig, args, sig == SIGTERM ? "Killed " : "Terminated ", true);
-        else
+        if (kill(matches[idx].pid, sig) == 0) {
+            print_proc_info(&matches[idx], sig, args, strsignal(sig), true);
+        } else {
             ERROR("Failed to send signal %d to PID %d (%s): %s", sig, matches[idx].pid,
-                  matches[idx].name, strerror(errno));
+                   matches[idx].name, strerror(errno));
+        }
     }
     // Post-kill hook
     run_hook(args->post_hook, matches[selected[0]].pid, matches[selected[0]].name);

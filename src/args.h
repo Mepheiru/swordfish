@@ -3,9 +3,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-// Sorting modes for --sort
+/* Sorting modes for --sort */
 typedef enum { SWSORT_NONE = 0, SWSORT_CPU, SWSORT_RAM, SWSORT_AGE } swordfish_sort_mode_t;
 
+/* Command-line arguments structure definitions */
 typedef struct {
     const char *sig_str;
     const char *sort_key;
@@ -19,6 +20,7 @@ typedef struct {
     int retry_time;
     bool do_term;
     bool do_kill;
+    bool do_sig;
     bool select_mode;
     bool exact_match;
     bool print_pids_only;

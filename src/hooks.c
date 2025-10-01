@@ -1,4 +1,3 @@
-/* hooks.c */
 #include "hooks.h"
 #include "main.h"
 
@@ -11,7 +10,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-/* safe_strncpy: copy up to size-1 chars, always null-terminate */
+/* Copy up to size-1 chars, always null-terminate. Does not pad */
 void safe_strncpy(char *dst, const char *src, size_t size) {
     if (!dst || !src || size == 0)
         return;
@@ -25,6 +24,7 @@ void safe_strncpy(char *dst, const char *src, size_t size) {
     dst[copy_len] = '\0';
 }
 
+/* Run a hook command (post/pre) with PID and process name as arguments */
 void run_hook(const char *hook, pid_t pid, const char *name) {
     if (!hook || hook[0] == '\0')
         return;

@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Main entry point */
 int main(int arg_count, char **argv) {
-    // If invalid args, return error code
     swordfish_args_t args;
     int ret = parse_args(arg_count, argv, &args);
     if (ret)
@@ -27,6 +27,7 @@ int main(int arg_count, char **argv) {
         }
     }
 
+    /* Actually send the warning message for empty string */
     if (has_empty_pattern && !args.auto_confirm && is_interactive()) {
         WARN("Empty pattern specified. \nThis may match all processes and could be " COLOR_WARN
              "dangerous!" COLOR_RESET);
@@ -34,7 +35,6 @@ int main(int arg_count, char **argv) {
         char confirm[8] = {0};
         fgets(confirm, sizeof(confirm), stdin);
         if (tolower(confirm[0]) != 'y') {
-            printf("Aborted\n");
             return 1;
         }
     }
