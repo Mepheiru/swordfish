@@ -1,11 +1,10 @@
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
+#include "main.h"
 #include "args.h"
 #include "process.h"
-#include "main.h"
+#include <ctype.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int main(int arg_count, char **argv) {
     // If invalid args, return error code
@@ -17,7 +16,9 @@ int main(int arg_count, char **argv) {
     int pattern_count = arg_count - args.pattern_start_idx;
     char **patterns = &argv[args.pattern_start_idx];
 
-    // if args contains an empty string, ask user for confirmation
+    /* if args contains an empty string, ask user for confirmation.
+        We dont check if pattern_count is 0, because
+        parse_args already handles that case. */
     bool has_empty_pattern = false;
     for (int i = 0; i < pattern_count; ++i) {
         if (patterns[i][0] == '\0') {
@@ -27,7 +28,8 @@ int main(int arg_count, char **argv) {
     }
 
     if (has_empty_pattern && !args.auto_confirm && is_interactive()) {
-        WARN("Empty pattern specified. \nThis may match all processes and could be " COLOR_WARN "dangerous!" COLOR_RESET);
+        WARN("Empty pattern specified. \nThis may match all processes and could be " COLOR_WARN
+             "dangerous!" COLOR_RESET);
         printf("Proceed? [y/N]: ");
         char confirm[8] = {0};
         fgets(confirm, sizeof(confirm), stdin);

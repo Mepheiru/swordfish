@@ -1,23 +1,20 @@
 #include "process.h"
 #include "args.h"
-#include "main.h"
 #include "hooks.h"
+#include "main.h"
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <limits.h>
 #include <pwd.h>
+#include <regex.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/sysinfo.h>
-#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <regex.h>
 
 static bool is_proc_dir(const char *name) {
     for (; *name; ++name)
@@ -117,24 +114,23 @@ bool is_interactive(void) {
 }
 
 static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist,
-                             compiled_pattern_t *compiled) 
-{
+                             compiled_pattern_t *compiled) {
     for (int i = 0; i < plist->pattern_count; ++i) {
         const char *pat_orig = plist->patterns[i];
         compiled_pattern_t *c = &compiled[i];
 
-        strncpy(c->pattern, pat_orig, sizeof(c->pattern)-1);
-        c->pattern[sizeof(c->pattern)-1] = '\0';
+        safe_strncpy(c->pattern, pat_orig, sizeof(c->pattern) - 1);
+        c->pattern[sizeof(c->pattern) - 1] = '\0';
 
         size_t len = strlen(c->pattern);
         bool force_exact = false;
 
         if ((args->exact_match) ||
-            (len >= 2 && c->pattern[0] == '^' && c->pattern[len-1] == '$')) {
+            (len >= 2 && c->pattern[0] == '^' && c->pattern[len - 1] == '$')) {
             force_exact = true;
             if (!args->exact_match) {
-                c->pattern[len-1] = '\0';
-                memmove(c->pattern, c->pattern+1, strlen(c->pattern+1)+1);
+                c->pattern[len - 1] = '\0';
+                memmove(c->pattern, c->pattern + 1, strlen(c->pattern + 1) + 1);
             }
         }
 
@@ -154,14 +150,13 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
     }
 }
 
-
-static bool match_process(const char *name, const char *cmdline,
-                          compiled_pattern_t *compiled, int pattern_count) {
+static bool match_process(const char *name, const char *cmdline, compiled_pattern_t *compiled,
+                          int pattern_count) {
     char name_lc[256], cmdline_lc[256];
-    strncpy(name_lc, name, sizeof(name_lc)-1);
-    name_lc[sizeof(name_lc)-1] = '\0';
-    strncpy(cmdline_lc, cmdline, sizeof(cmdline_lc)-1);
-    cmdline_lc[sizeof(cmdline_lc)-1] = '\0';
+    safe_strncpy(name_lc, name, sizeof(name_lc) - 1);
+    name_lc[sizeof(name_lc) - 1] = '\0';
+    safe_strncpy(cmdline_lc, cmdline, sizeof(cmdline_lc) - 1);
+    cmdline_lc[sizeof(cmdline_lc) - 1] = '\0';
     strtolower(name_lc);
     strtolower(cmdline_lc);
 
@@ -169,23 +164,21 @@ static bool match_process(const char *name, const char *cmdline,
         compiled_pattern_t *c = &compiled[i];
 
         switch (c->type) {
-            case PAT_EXACT:
-                if (strcmp(name_lc, c->pattern) == 0 ||
-                    strcmp(cmdline_lc, c->pattern) == 0)
-                    return true;
-                break;
+        case PAT_EXACT:
+            if (strcmp(name_lc, c->pattern) == 0 || strcmp(cmdline_lc, c->pattern) == 0)
+                return true;
+            break;
 
-            case PAT_REGEX:
-                if (regexec(&c->regex, name_lc, 0, NULL, 0) == 0 ||
-                    regexec(&c->regex, cmdline_lc, 0, NULL, 0) == 0)
-                    return true;
-                break;
+        case PAT_REGEX:
+            if (regexec(&c->regex, name_lc, 0, NULL, 0) == 0 ||
+                regexec(&c->regex, cmdline_lc, 0, NULL, 0) == 0)
+                return true;
+            break;
 
-            case PAT_SUBSTR:
-                if (strstr(name_lc, c->pattern) != NULL ||
-                    strstr(cmdline_lc, c->pattern) != NULL)
-                    return true;
-                break;
+        case PAT_SUBSTR:
+            if (strstr(name_lc, c->pattern) != NULL || strstr(cmdline_lc, c->pattern) != NULL)
+                return true;
+            break;
         }
     }
     return false;
@@ -202,9 +195,9 @@ static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
     // Exclude patterns (same as before)
     if (args->exclude_patterns && args->exclude_count > 0) {
         char name_lc[256], cmdline_lc[256];
-        strncpy(name_lc, p->name, sizeof(name_lc));
+        safe_strncpy(name_lc, p->name, sizeof(name_lc));
         name_lc[sizeof(name_lc) - 1] = '\0';
-        strncpy(cmdline_lc, p->cmdline, sizeof(cmdline_lc));
+        safe_strncpy(cmdline_lc, p->cmdline, sizeof(cmdline_lc));
         cmdline_lc[sizeof(cmdline_lc) - 1] = '\0';
         strtolower(name_lc);
         strtolower(cmdline_lc);
@@ -223,7 +216,6 @@ static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
 
     return match_process(p->name, p->cmdline, compiled, plist->pattern_count);
 }
-
 
 static void print_proc_info(const process_info_t *p, int sig, const swordfish_args_t *args,
                             const char *prefix, bool include_signal) {
@@ -421,9 +413,9 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         fclose(f);
         p.name[strcspn(p.name, "\n")] = 0;
 
-        strncpy(p.cmdline, get_proc_cmdline(p.pid), sizeof(p.cmdline));
+        safe_strncpy(p.cmdline, get_proc_cmdline(p.pid), sizeof(p.cmdline));
         read_status_field(p.pid, &p.status);
-        strncpy(p.owner, get_proc_user(p.status.uid), sizeof(p.owner));
+        safe_strncpy(p.owner, get_proc_user(p.status.uid), sizeof(p.owner));
         p.ram = get_proc_ram_kb(p.pid);
         p.start_time = get_proc_start_time(p.pid);
         p.cpu = get_proc_cpu(p.pid);
@@ -484,14 +476,15 @@ static void select_processes(int matched, process_info_t *matches, int *selected
     }
 }
 
-
-static void confirm_and_act(const swordfish_args_t *args, int count, int *selected, process_info_t *matches) {
+static void confirm_and_act(const swordfish_args_t *args, int count, int *selected,
+                            process_info_t *matches) {
     // Show warning if any selected process is root
     if (!args->run_static && has_root_process(count, selected, matches, 0) && is_interactive()) {
         WARN("At least one selected process is owned by root!");
     }
 
-    if (count == 0) return;
+    if (count == 0)
+        return;
 
     int sig = args->do_kill ? SIGKILL : args->sig;
 
@@ -510,7 +503,6 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
         char confirm[8] = {0};
         fgets(confirm, sizeof(confirm), stdin);
         if (tolower(confirm[0]) != 'y') {
-            printf("Aborted.\n");
             return;
         }
     }
@@ -518,8 +510,8 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
     for (int i = 0; i < count; ++i) {
         int idx = selected[i];
         if (is_zombie_process(matches[idx].pid)) {
-            printf("PID %d (%s) is a zombie process and may not be killed.\n",
-                   matches[idx].pid, matches[idx].name);
+            printf("PID %d (%s) is a zombie process and may not be killed\n", matches[idx].pid,
+                   matches[idx].name);
             continue;
         }
 
@@ -529,11 +521,10 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
         }
 
         if (kill(matches[idx].pid, sig) == 0)
-            print_proc_info(&matches[idx], sig, args,
-                            sig == SIGTERM ? "Killed " : "Killed ", true);
+            print_proc_info(&matches[idx], sig, args, sig == SIGTERM ? "Killed " : "Terminated ", true);
         else
-            fprintf(stderr, "Failed to kill PID %d (%s): %s\n",
-                    matches[idx].pid, matches[idx].name, strerror(errno));
+            ERROR("Failed to send signal %d to PID %d (%s): %s", sig, matches[idx].pid,
+                  matches[idx].name, strerror(errno));
     }
     // Post-kill hook
     run_hook(args->post_hook, matches[selected[0]].pid, matches[selected[0]].name);
@@ -573,7 +564,7 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
             }
             confirm_and_act(args, count, selected, matches);
         } else {
-            fprintf(stderr, "No processes matched.\n");
+            printf("No processes matched\n");
         }
 
         if (args->retry_time <= 0)

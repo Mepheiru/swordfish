@@ -1,6 +1,3 @@
-#include "args.h"
-#include "main.h"
-#include "hooks.h"
 #include <ctype.h>
 #include <getopt.h>
 #include <limits.h>
@@ -8,15 +5,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <strings.h>
+
+#include "args.h"
+#include "hooks.h"
+#include "main.h"
 
 #ifndef NSIG
 #define NSIG 65
 #endif
 
 #define MAX_EXCLUDE_PATTERNS 16
-static const char *short_opts = "SKkxyptvr:u:";
+static const char *short_opts = "SKkxyptvhr:u:";
 
 const swordfish_flag_desc_t swordfish_flags[] = {
     {"-S", "Select which PIDs to kill (interactive prompt)"},
@@ -32,7 +32,7 @@ const swordfish_flag_desc_t swordfish_flags[] = {
     {"-u <USER>", "Filter processes by username"},
     {"--sort <cpu|ram|age>", "Sort process list by CPU, RAM, or age"},
     {"--exclude <pattern>", "Exclude processes matching pattern"},
-    {"--help", "Show this help message and exit"},
+    {"--help/-h", "Shows this help message"},
 };
 
 const swordfish_usage_example_t swordfish_usage[] = {
@@ -41,7 +41,10 @@ const swordfish_usage_example_t swordfish_usage[] = {
     {"%s -Sk KILL vim", "Interactively select vim processes and send SIGKILL"},
     {"%s -ky firefox vim bash",
      "Kill all 'firefox', 'vim', and 'bash' processes without confirmation"},
-    {"%s -kyr 1 firefox", "Recursively kill 'firefox' every 1 second"}};
+    {"%s -kyr 1 firefox", "Recursively kill 'firefox' every 1 second"},
+    {"%s --pre-hook script1.sh nvim",
+     "Run 'script1.sh' and 'script2.sh' before killing Neovim"},
+};
 
 const size_t swordfish_flags_count = sizeof(swordfish_flags) / sizeof(swordfish_flags[0]);
 const size_t swordfish_usage_count = sizeof(swordfish_usage) / sizeof(swordfish_usage[0]);
@@ -53,32 +56,36 @@ const swordfish_signal_t signals[] = {
 const size_t signals_count = sizeof(signals) / sizeof(signals[0]);
 
 void usage(const char *prog) {
-    fprintf(stderr,
-            "Swordfish : A pkill-like CLI tool\n"
-            "Usage: %s -%s pattern [pattern ...]\n",
-            prog, short_opts);
+    const int usage_indent = 31;
+
+    printf("Swordfish : A pkill-like CLI tool\n"
+           "Usage: %s -%s pattern [pattern ...]\n",
+           prog, short_opts);
     for (size_t i = 0; i < swordfish_usage_count; ++i) {
         printf("  ");
         printf(swordfish_usage[i].usage, prog);
-        printf("%*s%s\n", 30 - (int)strlen(swordfish_usage[i].usage), "", swordfish_usage[i].desc);
+        printf("%*s%s\n", usage_indent - (int)strlen(swordfish_usage[i].usage), "", swordfish_usage[i].desc);
     }
-    fprintf(stderr, "  pattern %-36s%s One or more process name patterns\n", "", "");
-    fprintf(stderr, "For more information, please run '%s --help'\n", prog);
+    printf("  pattern %-36s%s  One or more process name patterns\n", "", "");
+    printf("For more information, please run '%s --help'\n", prog);
 }
 
 void help(const char *prog) {
+    const int options_indent = 22;
+    const int examples_indent = 31;
+
     printf("Swordfish : A pkill-like CLI tool\n\n");
     printf("Usage:\n  %s -%s pattern [pattern ...]\n\n", prog, short_opts);
     printf("Options:\n");
     for (size_t i = 0; i < swordfish_flags_count; ++i) {
-        printf("  %-22s%s\n", swordfish_flags[i].flag, swordfish_flags[i].desc);
+        printf("  %-*s%s\n", options_indent, swordfish_flags[i].flag, swordfish_flags[i].desc);
     }
     printf("\nPatterns:\n  One or more patterns to match process names against.\n  Matching is "
            "case-insensitive substring unless -x is used.\n\nExamples:\n");
     for (size_t i = 0; i < swordfish_usage_count; ++i) {
         printf("  ");
         printf(swordfish_usage[i].usage, prog);
-        printf("%*s%s\n", 30 - (int)strlen(swordfish_usage[i].usage), "", swordfish_usage[i].desc);
+        printf("%*s%s\n", examples_indent - (int)strlen(swordfish_usage[i].usage), "", swordfish_usage[i].desc);
     }
 }
 
@@ -105,6 +112,7 @@ int get_signal(const char *sigstr) {
     return -1;
 }
 
+/* Parse command-line arguments. Returns 0 on success, 1 on error */
 int parse_args(int argc, char **argv, swordfish_args_t *args) {
     // Initialize defaults
     args->sig_str = "TERM";
@@ -162,20 +170,16 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
                 i--; // re-check current index
             } else {
                 ERROR("Unknown signal: %s", sigstr);
-                return 2;
+                return 1;
             }
         }
     }
 
     // Step 2: Define long options
     static struct option long_opts[] = {
-        {"sort", required_argument, NULL, 1000},
-        {"help", no_argument, NULL, 1001},
-        {"exclude", required_argument, NULL, 1002},
-        {"pre-hook", required_argument, NULL, 1003},
-        {"post-hook", required_argument, NULL, 1004},
-        {0, 0, 0, 0}
-    };
+        {"sort", required_argument, NULL, 1000},      {"help", no_argument, NULL, 1001},
+        {"exclude", required_argument, NULL, 1002},   {"pre-hook", required_argument, NULL, 1003},
+        {"post-hook", required_argument, NULL, 1004}, {0, 0, 0, 0}};
 
     // Step 3: Parse grouped short flags and long opts
     int opt, longindex = 0;
@@ -183,20 +187,42 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     int exclude_count = 0;
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &longindex)) != -1) {
         switch (opt) {
-        case 'S': args->select_mode = true; break;
-        case 'k': args->do_term = true; break;
-        case 'K': args->do_kill = true; break;
-        case 'x': args->exact_match = true; break;
-        case 'y': args->auto_confirm = true; break;
-        case 'p': args->print_pids_only = true; break;
-        case 'u': args->user = optarg; break;
-        case 'v': args->do_verbose = true; break;
-        case 't': args->top_only = true; break;
-        case 'r': args->retry_time = atoi(optarg); break;
-        
-        if (args->retry_time < 0)
-            args->retry_time = 0;
-        break;
+        case 'S':
+            args->select_mode = true;
+            break;
+        case 'k':
+            args->do_term = true;
+            break;
+        case 'K':
+            args->do_kill = true;
+            break;
+        case 'x':
+            args->exact_match = true;
+            break;
+        case 'y':
+            args->auto_confirm = true;
+            break;
+        case 'p':
+            args->print_pids_only = true;
+            break;
+        case 'u':
+            args->user = optarg;
+            break;
+        case 'v':
+            args->do_verbose = true;
+            break;
+        case 't':
+            args->top_only = true;
+            break;
+        case 'r':
+            args->retry_time = atoi(optarg);
+            if (args->retry_time < 0)
+                args->retry_time = 0;
+            break;
+        case 'h':
+            usage(argv[0]);
+            exit(0);
+            break;
 
         case 1000: // --sort
             args->sort_key = optarg;
@@ -207,50 +233,49 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
             else if (strcmp(args->sort_key, "age") == 0)
                 args->sort_mode = SWSORT_AGE;
             else {
-                fprintf(stderr, "Unknown sort key: %s\n", args->sort_key);
-                usage(argv[0]);
-                return 2;
+                ERROR("Unknown sort key: %s (use -h for help)", args->sort_key);
+                return 1;
             }
-        break;
+            break;
 
         case 1001: // --help
             help(argv[0]);
             exit(0);
-        break;
+            break;
 
         case 1002: // --exclude
             if (exclude_count < MAX_EXCLUDE_PATTERNS) {
                 exclude_patterns[exclude_count++] = optarg;
             } else {
-                fprintf(stderr, "Too many --exclude patterns (max %d)\n", MAX_EXCLUDE_PATTERNS);
-                return 2;
+                ERROR("Too many --exclude patterns (max %d)", MAX_EXCLUDE_PATTERNS);
+                return 1;
             }
-        break;
+            break;
 
         case 1003: // --pre-hook
             safe_strncpy(args->pre_hook, optarg, sizeof(args->pre_hook));
-        break;
+            break;
 
         case 1004: // --post-hook
             safe_strncpy(args->post_hook, optarg, sizeof(args->post_hook));
-        break;
+            break;
 
         default:
-            usage(argv[0]);
-            return 2;
+            ERROR("please specify at least one operation (use -h for help)");
+            return 1;
         }
     }
 
     // Step 4: Ensure at least one pattern is provided
     if (argc >= 2 && optind >= argc) {
         ERROR("Missing process name pattern(s)");
-        return 2;
+        return 1;
     }
-    
-    // if there is zero args, show usage
+
+    // if there is zero args, throw error
     if (argc <= 1) {
-        usage(argv[0]);
-        return 2;
+        ERROR("please specify at least one operation (use -h for help)");
+        return 1;
     }
     args->pattern_start_idx = optind;
 

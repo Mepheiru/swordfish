@@ -15,4 +15,4 @@
     fprintf(stderr, COLOR_WARN "ERROR:" COLOR_RESET " " msg "\n", ##__VA_ARGS__)
 
 #define INFO(msg, ...) \
-    fprintf(stdout, COLOR_YELLOW "INFO:" COLOR_RESET " " msg "\n", ##__VA_ARGS__)
+    printf(COLOR_YELLOW "INFO:" COLOR_RESET " " msg "\n", ##__VA_ARGS__)

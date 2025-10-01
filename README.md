@@ -47,7 +47,7 @@ swordfish -Sk bash
 swordfish -kyr 1 firefox
 
 # Run 'script1.sh' and 'script2.sh' before/after killing Neovim
-swordfish -TERM --pre-hook ./script1.sh --post-hook ./script2.sh nvim
+swordfish -TERM --pre-hook script1.sh --post-hook script2.sh nvim
 ```
 
 ## Installation

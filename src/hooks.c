@@ -1,21 +1,20 @@
 /* hooks.c */
-#include "main.h"
-#include "process.h"
-#include "args.h"
 #include "hooks.h"
+#include "main.h"
 
+#include <errno.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stddef.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <errno.h>
+#include <unistd.h>
 
 /* safe_strncpy: copy up to size-1 chars, always null-terminate */
 void safe_strncpy(char *dst, const char *src, size_t size) {
-    if (!dst || !src || size == 0) return;
+    if (!dst || !src || size == 0)
+        return;
 
     size_t src_len = strlen(src);
     size_t copy_len = (src_len >= size) ? (size - 1) : src_len;
@@ -33,19 +32,19 @@ void run_hook(const char *hook, pid_t pid, const char *name) {
     char pidbuf[32];
     int n = snprintf(pidbuf, sizeof(pidbuf), "%d", (int)pid);
     if (n < 0 || (size_t)n >= sizeof(pidbuf)) {
-        fprintf(stderr, "Hook: PID formatting failed for %d\n", (int)pid);
+        ERROR("Hook: PID formatting failed for %d", (int)pid);
         return;
     }
 
     pid_t child = fork();
     if (child < 0) {
-        fprintf(stderr, "Hook '%s' failed to fork: %s\n", hook, strerror(errno));
+        ERROR("Hook '%s' failed to fork: %s", hook, strerror(errno));
         return;
     }
 
     if (child == 0) {
         /* Child: prepare argv and a minimal, safer environment */
-        char *const argv[] = { (char *)hook, pidbuf, (char *)(name ? name : ""), NULL };
+        char *const argv[] = {(char *)hook, pidbuf, (char *)(name ? name : ""), NULL};
 
         /* Build minimal env, but include $DISPLAY and DBUS_SESSION_BUS_ADDRESS if set */
         const char *display = getenv("DISPLAY");
@@ -76,26 +75,26 @@ void run_hook(const char *hook, pid_t pid, const char *name) {
                 execve(buf, argv, (char *const *)envp);
             }
         }
-        fprintf(stderr, "Failed to exec hook '%s': %s\n", hook, strerror(errno));
+        ERROR("Failed to exec hook '%s': %s", hook, strerror(errno));
         _exit(127);
     }
 
     /* Parent: wait for child and report non-zero exit */
     int status = 0;
     if (waitpid(child, &status, 0) < 0) {
-        fprintf(stderr, "Hook '%s' waitpid failed: %s\n", hook, strerror(errno));
+        ERROR("Hook '%s' waitpid failed: %s", hook, strerror(errno));
         return;
     }
 
     if (WIFEXITED(status)) {
         int es = WEXITSTATUS(status);
         if (es != 0) {
-            fprintf(stderr, "Hook '%s' exited with status %d for PID %d (%s)\n",
-                    hook, es, (int)pid, name ? name : "");
+            ERROR("Hook '%s' exited with status %d for PID %d (%s)", hook, es, (int)pid,
+                  name ? name : "");
         }
     } else if (WIFSIGNALED(status)) {
         int sig = WTERMSIG(status);
-        fprintf(stderr, "Hook '%s' killed by signal %d for PID %d (%s)\n",
-                hook, sig, (int)pid, name ? name : "");
+        ERROR("Hook '%s' killed by signal %d for PID %d (%s)", hook, sig, (int)pid,
+              name ? name : "");
     }
 }
