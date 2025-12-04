@@ -5,7 +5,6 @@
 
 #include <ctype.h>
 #include <dirent.h>
-#include <errno.h>
 #include <limits.h>
 #include <pwd.h>
 #include <regex.h>
@@ -25,7 +24,6 @@ static bool is_proc_dir(const char *name) {
             return false;
     return true;
 }
-
 
 bool is_all_digits(const char *s) {
     if (!s || *s == '\0')
@@ -59,52 +57,6 @@ bool is_zombie_process(pid_t pid) {
 static const char *get_proc_user(uid_t uid) {
     struct passwd *pw = getpwuid(uid);
     return pw ? pw->pw_name : "unknown";
-}
-
-/* Reads the /proc/[pid]/status file and extracts 
-   UID, State, and Threads */
-static bool read_status_field(pid_t pid, proc_status_t *status) {
-    char path[PATH_MAX], line[256];
-    snprintf(path, sizeof(path), "/proc/%d/status", pid);
-    FILE *f = fopen(path, "r");
-    if (!f)
-        return false;
-
-    while (fgets(line, sizeof(line), f)) {
-        if (strncmp(line, "Uid:", 4) == 0)
-            sscanf(line, "Uid:\t%u", &status->uid);
-        else if (strncmp(line, "State:", 6) == 0)
-            sscanf(line, "State:\t%c", &status->state);
-        else if (strncmp(line, "Threads:", 8) == 0)
-            sscanf(line, "Threads:\t%s", status->threads);
-    }
-    fclose(f);
-    return true;
-}
-
-/* Get the arguments that the process was started with */
-static const char *get_proc_cmdline(pid_t pid) {
-    static char cmdline[256];
-    char path[PATH_MAX];
-    snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
-    FILE *f = fopen(path, "r");
-    if (!f)
-        return "unknown";
-
-    size_t len = fread(cmdline, 1, sizeof(cmdline) - 1, f);
-    fclose(f);
-
-    if (len == 0) {
-        strcpy(cmdline, "unknown");
-    } else {
-        // Replace null bytes with spaces
-        for (size_t i = 0; i < len; ++i)
-            if (cmdline[i] == '\0')
-                cmdline[i] = ' ';
-        cmdline[len] = '\0';
-    }
-
-    return cmdline;
 }
 
 static void str_to_lower(char *s) {
@@ -303,23 +255,6 @@ static long get_proc_start_time(pid_t pid) {
     return start_time;
 }
 
-static long get_proc_ram_kb(pid_t pid) {
-    char status_path[PATH_MAX], line[256];
-    snprintf(status_path, sizeof(status_path), "/proc/%d/status", pid);
-    FILE *f = fopen(status_path, "r");
-    if (!f)
-        return 0;
-    long ram = 0;
-    while (fgets(line, sizeof(line), f)) {
-        if (strncmp(line, "VmRSS:", 6) == 0) {
-            sscanf(line, "VmRSS: %ld", &ram);
-            break;
-        }
-    }
-    fclose(f);
-    return ram;
-}
-
 static double get_proc_cpu(pid_t pid) {
     char stat_path[PATH_MAX], buf[1024];
     snprintf(stat_path, sizeof(stat_path), "/proc/%d/stat", pid);
@@ -431,8 +366,8 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
 
         // read comm (2nd field) and skip rest
         char comm_buf[256], state;
-        unsigned long utime, stime;
-        long rss;
+        unsigned long utime = 0, stime = 0;
+        long rss = 0;
         fscanf(fstat, "%*d (%255[^)]) %c %*s %*s %*s %*s %*s %*s %*s %*s %*s %lu %lu %*s %*s %*s %*s %*s %ld",
                comm_buf, &state, &utime, &stime, &rss);
         fclose(fstat);
@@ -453,9 +388,50 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         safe_strncpy(p.owner, get_proc_user(uid), sizeof(p.owner));
         p.cmdline[0] = '\0';  // optionally lazy-load cmdline only if needed
 
-        p.ram = rss / 1024;  // convert pages to KB assuming page size = 1KB (approx)
-        p.start_time = get_proc_start_time(pid);
-        p.cpu = get_proc_cpu(pid);
+        // Read /proc/<pid>/cmdline for command line
+        char cmdline_path[PATH_MAX];
+        snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
+        FILE *fcmd = fopen(cmdline_path, "r");
+        if (fcmd) {
+            size_t n = fread(p.cmdline, 1, sizeof(p.cmdline) - 1, fcmd);
+            fclose(fcmd);
+            // cmdline is null-separated, replace with spaces
+            for (size_t i = 0; i < n; ++i) {
+                if (p.cmdline[i] == '\0') p.cmdline[i] = ' ';
+            }
+            p.cmdline[n] = '\0';
+        } else {
+            p.cmdline[0] = '\0';
+        }
+
+        // Read thread count from /proc/<pid>/status
+        snprintf(status_path, sizeof(status_path), "/proc/%d/status", pid);
+        fstatus = fopen(status_path, "r");
+        if (fstatus) {
+            while (fgets(line, sizeof(line), fstatus)) {
+                if (sscanf(line, "Threads:\t%31s", p.status.threads) == 1) break;
+            }
+            fclose(fstatus);
+        } else {
+            p.status.threads[0] = '\0';
+        }
+
+        // RAM calculation: use system page size
+        long page_size = sysconf(_SC_PAGESIZE);
+        switch (args->sort_mode) {
+            case SWSORT_RAM:
+                p.ram = rss * page_size / 1024;  // convert to kB
+                break;
+            case SWSORT_AGE:
+                p.start_time = get_proc_start_time(pid);
+                break;
+            case SWSORT_CPU:
+                p.cpu = get_proc_cpu(pid);
+                break;
+            default:
+                // If no sort, or unknown, only fill basic info
+                break;
+        }
 
         if (args->user && strcasecmp(p.owner, args->user) != 0)
             continue;
@@ -594,14 +570,14 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
                 case SWSORT_CPU: qsort(matches, matched, sizeof(process_info_t), cmp_cpu); break;
                 case SWSORT_RAM: qsort(matches, matched, sizeof(process_info_t), cmp_ram); break;
                 case SWSORT_AGE: qsort(matches, matched, sizeof(process_info_t), cmp_age); break;
-                default: break;  // handles SWSORT_NONE and any future values
+                default: break;
             }
         }
 
         if (args->print_pids_only) {
             for (int i = 0; i < matched; ++i)
                 printf("%d\n", matches[i].pid);
-            break;  // no need for ternary here, just break
+            break;
         }
 
         int selected[MAX_MATCHES], count = 0;

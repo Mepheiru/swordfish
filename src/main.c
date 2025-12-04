@@ -4,13 +4,10 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-
-// TODO: make sure that run_static is set properly when using only patterns that dont send sigs
-// TODO: EGC: --sort age <pattern> for some reason uses sig 15, when it should run_static
 
 //TODO: make sure sort works properly
 //TODO: make sure that the proc search dosent read all of /proc every time, and only reads stats for the specified sort mode (if any)
+//TODO: make sure cmdl and threads display properly when in verbose (-v) mode
 
 /* Main entry point */
 int main(int arg_count, char **argv) {

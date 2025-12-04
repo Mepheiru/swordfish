@@ -207,9 +207,11 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
             break;
         case 'k':
             args->do_term = true;
+            args->do_sig = true;
             break;
         case 'K':
             args->do_kill = true;
+            args->do_sig = true;
             break;
         case 'x':
             args->exact_match = true;
@@ -248,7 +250,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
             else if (strcmp(args->sort_key, "age") == 0)
                 args->sort_mode = SWSORT_AGE;
             else {
-                ERROR("Unknown sort key: %s (use -h for help)", args->sort_key);
+                ERROR("Unknown sort mode: %s (use -h for help)", args->sort_key);
                 return 1;
             }
             break;
@@ -297,16 +299,14 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     args->exclude_patterns = exclude_patterns;
     args->exclude_count = exclude_count;
 
-    // Step 5: Detect "static run" mode (just pattern with no flags)
-    if (argc - 1 == 1 && !args->do_sig) { // Only one argument besides argv[0]
-        const char *arg = argv[1];
-        if (arg[0] != '-') {
-            args->run_static = true;
-            args->do_term = false;
-            args->do_kill = false;
-            args->select_mode = false;
-            args->auto_confirm = false;
-        }
+    // printf("%d\n", argc);
+    // printf("sig%d term%d kill%d", args->do_sig, args->do_term, args->do_kill);
+
+    // Step 5: Detect "static run" mode (just pattern with no flags) or
+    // no sig flags
+    if ((argc - optind) >= 1 && !args->do_sig && !args->do_term && !args->do_kill) {
+        INFO("static run");
+        args->run_static = true;
     }
 
     return 0;
