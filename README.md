@@ -19,6 +19,7 @@ Swordfish was made to make managing processes easier. It started as a project fo
 - Sorting by RAM, CPU, or age
 - Pattern exclusions (`--exclude`)
 - Built-in retry functionality (`-r <time>`)
+- Auto-completions for Bash, Fish, and Zsh
 
 More can be found on the help page
 ###
@@ -46,7 +47,7 @@ swordfish -Sk bash
 swordfish -kyr 1 firefox
 
 # Run 'script1.sh' and 'script2.sh' before/after killing Neovim
-swordfish -TERM --pre-hook ./script1.sh --post-hook ./script2.sh nvim
+swordfish -TERM --pre-hook script1.sh --post-hook script2.sh nvim
 ```
 
 ## Installation
@@ -74,7 +75,12 @@ make
 - Config file support for default flags and settings
 - Improved piping support for safer read-only mode
 - Advanced regex features
-- Additional Scripting hooks
+- Additional scripting hooks
+- Process tree support
+- "Hide root processes" argument
+- "Version" argument
+- "Spy" argument. Watch processes update live
+
 
 ## Possible Future Additions
 - JSON/CSV export of process lists
