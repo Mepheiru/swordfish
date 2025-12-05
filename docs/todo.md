@@ -11,7 +11,7 @@ Stuff that needs to be done. This document also contains some potential ideas fo
   - Main function path needs to be more clear.
   - Comments need to be quite a lot better.
   - Split up "find_matching_processes" even more.
-  - Renamed many functions to better suit their function.
+  - Rename many functions to better suit their function.
   - Remove unused code.
 - Rework how arguments are used to better fit the vision. Current way it's set up is messy and confusing.
 - Write "vision.md". It will contain the projects philosophy and the vision of what swordfish will be when finished.

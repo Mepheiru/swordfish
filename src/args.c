@@ -147,10 +147,11 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     args->pre_hook[0] = '\0';
     args->post_hook[0] = '\0';
 
+
+    // Check for ?-prefixed arguments
     for (int i = 1; i < argc; ++i) {
         char *arg = argv[i];
 
-        // Check for ?-prefixed arguments
         if (arg[0] == '?') {
             if (strcmp(arg + 1, "ram") == 0) {
                 args->sort_mode = SWSORT_RAM;
@@ -166,7 +167,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
         }
     }
     
-    // Step 1: Pre-scan for -<SIGNAL> args like -9, -KILL, -TERM, -SIGTERM
+    // Pre-scan for -<SIGNAL> args like -9, -KILL, -TERM, -SIGTERM
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-' && argv[i][1] && argv[i][1] != '-') {
             const char *sigstr = argv[i] + 1;
@@ -209,13 +210,12 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
         }
     }
 
-    // Step 2: Define long options
+    // Parse grouped short flags and long opts
     static struct option long_opts[] = {
         {"sort", required_argument, NULL, 1000},      {"help", no_argument, NULL, 1001},
         {"exclude", required_argument, NULL, 1002},   {"pre-hook", required_argument, NULL, 1003},
         {"post-hook", required_argument, NULL, 1004}, {0, 0, 0, 0}};
 
-    // Step 3: Parse grouped short flags and long opts
     int opt, longindex = 0;
     static const char *exclude_patterns[MAX_EXCLUDE_PATTERNS];
     int exclude_count = 0;
@@ -295,12 +295,11 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
             break;
 
         default:
-            ERROR("please specify at least one operation (use -h for help)");
             return 1;
         }
     }
 
-    // Step 4: Ensure at least one pattern is provided
+    // Ensure at least one pattern is provided
     if (argc >= 2 && optind >= argc) {
         ERROR("Missing process name pattern(s)");
         return 1;
@@ -316,10 +315,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     args->exclude_patterns = exclude_patterns;
     args->exclude_count = exclude_count;
 
-    // printf("%d\n", argc);
-    // printf("sig%d term%d kill%d", args->do_sig, args->do_term, args->do_kill);
-
-    // Step 5: Detect "static run" mode (just pattern with no flags) or
+    // Detect "static run" mode (just pattern with no flags) or
     // no sig flags
     if ((argc - optind) >= 1 && !args->do_sig && !args->do_term && !args->do_kill) {
         INFO("static run");
