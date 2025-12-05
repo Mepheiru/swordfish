@@ -28,7 +28,7 @@ typedef struct {
     proc_status_t status;
 } process_info_t;
 
-typedef enum { PAT_EXACT, PAT_REGEX, PAT_SUBSTR } pattern_type_t;
+typedef enum { PAT_EXACT, PAT_REGEX, PAT_SUBSTR, PAT_SKIP } pattern_type_t;
 
 typedef struct {
     char pattern[256];

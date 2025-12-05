@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-//TODO: make sure sort works properly
-//TODO: make sure that the proc search dosent read all of /proc every time, and only reads stats for the specified sort mode (if any)
-//TODO: make sure cmdl and threads display properly when in verbose (-v) mode
-
 /* Main entry point */
 int main(int arg_count, char **argv) {
     swordfish_args_t args;

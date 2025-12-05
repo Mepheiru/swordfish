@@ -32,7 +32,7 @@ const swordfish_flag_desc_t swordfish_flags[] = {
     {"-r <time>", "Retry on failure after waiting <time> seconds"},
     {"-<SIGNAL>", "Shorthand to specify signal (e.g. -9, -KILL)"},
     {"-u <USER>", "Filter processes by username"},
-    {"--sort <cpu|ram|age>", "Sort process list by CPU, RAM, or age"},
+    {"--sort <ram|age>", "Sort process list by RAM or age"},
     {"--exclude <pattern>", "Exclude processes matching pattern"},
     {"--help/-h", "Shows this help message"},
 };
@@ -147,6 +147,25 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
     args->pre_hook[0] = '\0';
     args->post_hook[0] = '\0';
 
+    for (int i = 1; i < argc; ++i) {
+        char *arg = argv[i];
+
+        // Check for ?-prefixed arguments
+        if (arg[0] == '?') {
+            if (strcmp(arg + 1, "ram") == 0) {
+                args->sort_mode = SWSORT_RAM;
+            } else if (strcmp(arg + 1, "age") == 0) {
+                args->sort_mode = SWSORT_AGE;
+            }else {
+               ERROR("Unknown option: %s", arg);
+               return 1;
+            }
+        } else {
+            // leave it for the next step
+            continue;
+        }
+    }
+    
     // Step 1: Pre-scan for -<SIGNAL> args like -9, -KILL, -TERM, -SIGTERM
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-' && argv[i][1] && argv[i][1] != '-') {
@@ -243,9 +262,7 @@ int parse_args(int argc, char **argv, swordfish_args_t *args) {
 
         case 1000: // --sort
             args->sort_key = optarg;
-            if (strcmp(args->sort_key, "cpu") == 0)
-                args->sort_mode = SWSORT_CPU;
-            else if (strcmp(args->sort_key, "ram") == 0)
+            if (strcmp(args->sort_key, "ram") == 0)
                 args->sort_mode = SWSORT_RAM;
             else if (strcmp(args->sort_key, "age") == 0)
                 args->sort_mode = SWSORT_AGE;

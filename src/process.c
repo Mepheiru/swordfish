@@ -16,6 +16,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+
+#include <sys/stat.h>
 
 /* Check if a directory name is a valid process directory */
 static bool is_proc_dir(const char *name) {
@@ -77,6 +80,14 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
                              compiled_pattern_t *compiled) {
     for (int i = 0; i < plist->pattern_count; ++i) {
         const char *pat_orig = plist->patterns[i];
+
+        // Skip ?-args
+        if (pat_orig[0] == '?') {
+            compiled[i].type = PAT_SKIP;
+            compiled[i].pattern[0] = '\0';
+            continue;
+        }
+
         compiled_pattern_t *c = &compiled[i];
 
         safe_strncpy(c->pattern, pat_orig, sizeof(c->pattern) - 1);
@@ -102,7 +113,7 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
                 char errbuf[256];
                 regerror(rc, &c->regex, errbuf, sizeof(errbuf));
                 ERROR("Invalid regex pattern \"%s\": %s", c->pattern, errbuf);
-                c->type = PAT_SUBSTR; // optional fallback, or exit if you prefer
+                c->type = PAT_SUBSTR;
             } else {
                 c->type = PAT_REGEX;
             }
@@ -201,27 +212,23 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
 
     // Verbose
     if (args->do_verbose || !tty) {
-        printf("%s %d (%s) cmdl (%s) threads (%s) owned by ", prefix, p->pid, p->name, p->cmdline,
+        printf("%s %d '%s' cmdl: '%s' threads: '%s' owned by ", prefix, p->pid, p->name, p->cmdline,
                p->status.threads);
         printf(owner_fmt, p->owner);
-        if (tty) {
-            printf(" | CPU: %.1f%% | RAM: %.1f MB | Age: %ld min", p->cpu, p->ram / 1024.0,
-                   age_min > 0 ? age_min : 0);
-        }
+
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
     }
+
     // Normal 
     else {
-        printf("%s %d (%s) owned by ", prefix, p->pid, p->name);
+        printf("%s %d '%s' owned by ", prefix, p->pid, p->name);
         printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
         if (tty) {
-            if (args->sort_mode == SWSORT_CPU)
-                printf(" [%.1f%%]", p->cpu);
-            else if (args->sort_mode == SWSORT_RAM)
-                printf(" [%.1f MB]", p->ram / 1024.0);
+            if (args->sort_mode == SWSORT_RAM)
+                printf(" [%ld MB]", p->ram);
             else if (args->sort_mode == SWSORT_AGE)
                 printf(" [%ld min]", age_min > 0 ? age_min : 0);
         }
@@ -253,56 +260,6 @@ static long get_proc_start_time(pid_t pid) {
         p++;
     }
     return start_time;
-}
-
-static double get_proc_cpu(pid_t pid) {
-    char stat_path[PATH_MAX], buf[1024];
-    snprintf(stat_path, sizeof(stat_path), "/proc/%d/stat", pid);
-    FILE *f = fopen(stat_path, "r");
-    if (!f)
-        return 0.0;
-    if (!fgets(buf, sizeof(buf), f)) {
-        fclose(f);
-        return 0.0;
-    }
-    fclose(f);
-    unsigned long utime = 0, stime = 0, cutime = 0, cstime = 0, starttime = 0;
-    int field = 1;
-    char *p = buf;
-    while (field <= 22 && *p) {
-        if (field == 14)
-            utime = strtoul(p, NULL, 10);
-        else if (field == 15)
-            stime = strtoul(p, NULL, 10);
-        else if (field == 16)
-            cutime = strtoul(p, NULL, 10);
-        else if (field == 17)
-            cstime = strtoul(p, NULL, 10);
-        else if (field == 22)
-            starttime = strtoul(p, NULL, 10);
-        if (*p == ' ')
-            field++;
-        p++;
-    }
-    double total_time = utime + stime + cutime + cstime;
-    double uptime_seconds = 0;
-    FILE *uf = fopen("/proc/uptime", "r");
-    if (uf) {
-        double up = 0;
-        if (fscanf(uf, "%lf", &up) == 1)
-            uptime_seconds = up;
-        fclose(uf);
-    }
-    long ticks_per_sec = sysconf(_SC_CLK_TCK);
-    double seconds = uptime_seconds - ((double)starttime / ticks_per_sec);
-    if (seconds <= 0)
-        return 0.0;
-    return 100.0 * (total_time / ticks_per_sec) / seconds;
-}
-
-static int cmp_cpu(const void *a, const void *b) {
-    const process_info_t *pa = a, *pb = b;
-    return (pb->cpu > pa->cpu) - (pb->cpu < pa->cpu);
 }
 
 static int cmp_ram(const void *a, const void *b) {
@@ -362,32 +319,54 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         snprintf(status_path, sizeof(status_path), "/proc/%d/status", pid);
 
         FILE *fstat = fopen(stat_path, "r");
-        if (!fstat) continue;
+        if (!fstat)
+            continue;
 
-        // read comm (2nd field) and skip rest
-        char comm_buf[256], state;
+        char comm_buf[256] = {0};
+        char state = '?';
         unsigned long utime = 0, stime = 0;
         long rss = 0;
-        fscanf(fstat, "%*d (%255[^)]) %c %*s %*s %*s %*s %*s %*s %*s %*s %*s %lu %lu %*s %*s %*s %*s %*s %ld",
-               comm_buf, &state, &utime, &stime, &rss);
+        long num_threads = 0;
+
+        // parse /proc/<pid>/stat
+        // I'm sorry
+        int n = fscanf(
+            fstat,
+            "%*d (%255[^)]) %c "          // comm, state
+            "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s "  // skip 4–13
+            "%lu %lu "                    // utime, stime
+            "%*s %*s %*s %*s "            // skip 16–19
+            "%ld"                         // num_threads
+            "%*s %*s %*s "                // skip 21-23
+            "%ld",                        // rss
+            comm_buf,
+            &state,
+            &utime,
+            &stime,
+            &num_threads,
+            &rss
+        );
+
         fclose(fstat);
+
+        if (n != 6)
+            continue;
 
         safe_strncpy(p.name, comm_buf, sizeof(p.name));
 
-        // Read UID from /proc/<pid>/status
-        FILE *fstatus = fopen(status_path, "r");
-        if (!fstatus) continue;
+        // Set the thread count
+        snprintf(p.status.threads, sizeof(p.status.threads), "%ld", num_threads);
 
-        char line[256];
-        uid_t uid = -1;
-        while (fgets(line, sizeof(line), fstatus)) {
-            if (sscanf(line, "Uid:\t%u", &uid) == 1) break;
+        // Get proc owner
+        struct stat st;
+        char procpath[64];
+        snprintf(procpath, sizeof(procpath), "/proc/%d", pid);
+
+        if (stat(procpath, &st) == 0) {
+            uid_t uid = st.st_uid;
+            safe_strncpy(p.owner, get_proc_user(uid), sizeof(p.owner));
         }
-        fclose(fstatus);
-
-        safe_strncpy(p.owner, get_proc_user(uid), sizeof(p.owner));
-        p.cmdline[0] = '\0';  // optionally lazy-load cmdline only if needed
-
+             
         // Read /proc/<pid>/cmdline for command line
         char cmdline_path[PATH_MAX];
         snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
@@ -404,29 +383,14 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             p.cmdline[0] = '\0';
         }
 
-        // Read thread count from /proc/<pid>/status
-        snprintf(status_path, sizeof(status_path), "/proc/%d/status", pid);
-        fstatus = fopen(status_path, "r");
-        if (fstatus) {
-            while (fgets(line, sizeof(line), fstatus)) {
-                if (sscanf(line, "Threads:\t%31s", p.status.threads) == 1) break;
-            }
-            fclose(fstatus);
-        } else {
-            p.status.threads[0] = '\0';
-        }
-
         // RAM calculation: use system page size
         long page_size = sysconf(_SC_PAGESIZE);
         switch (args->sort_mode) {
             case SWSORT_RAM:
-                p.ram = rss * page_size / 1024;  // convert to kB
+                p.ram = rss * page_size / (1024 * 1024);  // convert to MB
                 break;
             case SWSORT_AGE:
                 p.start_time = get_proc_start_time(pid);
-                break;
-            case SWSORT_CPU:
-                p.cpu = get_proc_cpu(pid);
                 break;
             default:
                 // If no sort, or unknown, only fill basic info
@@ -567,7 +531,6 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
         // Only sort if there are multiple matches
         if (matched > 1) {
             switch (args->sort_mode) {
-                case SWSORT_CPU: qsort(matches, matched, sizeof(process_info_t), cmp_cpu); break;
                 case SWSORT_RAM: qsort(matches, matched, sizeof(process_info_t), cmp_ram); break;
                 case SWSORT_AGE: qsort(matches, matched, sizeof(process_info_t), cmp_age); break;
                 default: break;
