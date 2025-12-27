@@ -18,6 +18,7 @@ typedef struct {
     int exclude_count;
     int pattern_start_idx;
     int retry_time;
+    int verbose_level;
     bool do_term;
     bool do_kill;
     bool do_sig;
@@ -25,7 +26,6 @@ typedef struct {
     bool exact_match;
     bool print_pids_only;
     bool auto_confirm;
-    bool do_verbose;
     bool run_static;
     bool top_only;
     swordfish_sort_mode_t sort_mode;
@@ -43,6 +43,11 @@ typedef struct {
 
 typedef struct {
     const char *name;
+    const char *desc;
+} swordfish_completion_guide_t;
+
+typedef struct {
+    const char *name;
     int sig;
 } swordfish_signal_t;
 
@@ -55,4 +60,4 @@ extern const size_t signals_count;
 
 void usage(const char *prog);
 void help(const char *prog);
-int parse_args(int argc, char **argv, swordfish_args_t *args);
+int parse_args(int *argc, char **argv, swordfish_args_t *args);

@@ -10,19 +10,17 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-/* Copy up to size-1 chars, always null-terminate. Does not pad */
 void safe_strncpy(char *dst, const char *src, size_t size) {
     if (!dst || !src || size == 0)
         return;
 
-    size_t src_len = strlen(src);
-    size_t copy_len = (src_len >= size) ? (size - 1) : src_len;
+    size_t i = 0;
+    for (; i < size - 1 && src[i]; i++)
+        dst[i] = src[i];
 
-    if (copy_len > 0)
-        memcpy(dst, src, copy_len);
-
-    dst[copy_len] = '\0';
+    dst[i] = '\0';
 }
+
 
 /* Run a hook command (post/pre) with PID and process name as arguments */
 void run_hook(const char *hook, pid_t pid, const char *name) {

@@ -29,13 +29,16 @@ static bool is_proc_dir(const char *name) {
 }
 
 bool is_all_digits(const char *s) {
-    if (!s || *s == '\0')
-        return false;
-    for (; *s; ++s)
-        if (!isdigit(*s))
-            return false;
+    if (!s || !*s) return false;
+
+    const unsigned char *p = (const unsigned char *)s;
+    while (*p) {
+        if (*p < '0' || *p > '9') return false;
+        p++;
+    }
     return true;
 }
+
 
 bool is_zombie_process(pid_t pid) {
     char path[PATH_MAX], line[256];
@@ -75,6 +78,19 @@ bool is_interactive(void) {
     return isatty(STDOUT_FILENO) && isatty(STDIN_FILENO);
 }
 
+static inline bool looks_like_regex(const char *s) {
+    while (*s) {
+        switch (*s) {
+            case '^': case '$': case '.': case '*': case '+':
+            case '?': case '[': case ']': case '(': case ')':
+            case '{': case '}': case '|': case '\\':
+                return true;
+        }
+        s++;
+    }
+    return false;
+}
+
 /* Parse and compile REGEX patterns */
 static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist,
                              compiled_pattern_t *compiled) {
@@ -96,6 +112,9 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
         size_t len = strlen(c->pattern);
         bool force_exact = false;
 
+        if (strpbrk(c->pattern, "^$.*+?[](){}|\\") == NULL)
+            return;
+
         if ((args->exact_match) ||
             (len >= 2 && c->pattern[0] == '^' && c->pattern[len - 1] == '$')) {
             force_exact = true;
@@ -105,7 +124,7 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
             }
         }
 
-        if (force_exact) {
+        if (force_exact ) {
             c->type = PAT_EXACT;
         } else {
             int rc = regcomp(&c->regex, c->pattern, REG_ICASE | REG_NOSUB | REG_EXTENDED);
@@ -211,55 +230,44 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
     long age_min = (uptime - (p->start_time / sysconf(_SC_CLK_TCK))) / 60;
 
     // Verbose
-    if (args->do_verbose || !tty) {
-        printf("%s %d '%s' cmdl: '%s' threads: '%s' owned by ", prefix, p->pid, p->name, p->cmdline,
-               p->status.threads);
+    if (args->verbose_level >= 3 || !tty) {
+        printf("[%c] %d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->status.state, p->pid, p->name, p->cmdline, p->status.threads);
+        printf(owner_fmt, p->owner);
+        printf("\n    RAM: \"%ld MB\" AGE: \"%ld min\"", p->ram, age_min);
+
+        if (include_signal)
+            printf(" [signal %d (%s)]", sig, strsignal(sig));
+    } else if (args->verbose_level == 2) {
+        printf("[%c] %d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->status.state, p->pid, p->name, p->cmdline, p->status.threads);
         printf(owner_fmt, p->owner);
 
+        if (include_signal)
+            printf(" [signal %d (%s)]", sig, strsignal(sig));
+    } else if (args->verbose_level == 1) {
+        // Medium
+        printf("%d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->pid, p->name, p->cmdline, p->status.threads);
+        printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
     }
 
     // Normal 
     else {
-        printf("%s %d '%s' owned by ", prefix, p->pid, p->name);
+        printf("%s %d \"%s\" owned by ", prefix, p->pid, p->name);
         printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
-        if (tty) {
-            if (args->sort_mode == SWSORT_RAM)
-                printf(" [%ld MB]", p->ram);
-            else if (args->sort_mode == SWSORT_AGE)
-                printf(" [%ld min]", age_min > 0 ? age_min : 0);
-        }
     }
-    printf("\n");
-}
 
-static long get_proc_start_time(pid_t pid) {
-    char stat_path[PATH_MAX], buf[1024];
-    snprintf(stat_path, sizeof(stat_path), "/proc/%d/stat", pid);
-    FILE *f = fopen(stat_path, "r");
-    if (!f)
-        return 0;
-    if (!fgets(buf, sizeof(buf), f)) {
-        fclose(f);
-        return 0;
+    // Append sort modes if any are enabled
+    if (tty) {
+        if (args->sort_mode == SWSORT_RAM)
+            printf(" [%ld MB]", p->ram);
+        else if (args->sort_mode == SWSORT_AGE)
+            printf(" [%ld min]", age_min > 0 ? age_min : 0);
     }
-    fclose(f);
-    char *p = buf;
-    int field = 1;
-    long start_time = 0;
-    while (field <= 22 && *p) {
-        if (field == 22) {
-            sscanf(p, "%ld", &start_time);
-            break;
-        }
-        if (*p == ' ')
-            field++;
-        p++;
-    }
-    return start_time;
+
+    printf("\n");
 }
 
 static int cmp_ram(const void *a, const void *b) {
@@ -313,7 +321,7 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         process_info_t p = {0};
         p.pid = pid;
 
-        // Read /proc/<pid>/stat for name, start time, and UID (via /proc/<pid>/status)
+        // Read /proc/<pid>/stat and UID (/proc/<pid>/status)
         char stat_path[PATH_MAX], status_path[PATH_MAX];
         snprintf(stat_path, sizeof(stat_path), "/proc/%d/stat", pid);
         snprintf(status_path, sizeof(status_path), "/proc/%d/status", pid);
@@ -322,51 +330,74 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         if (!fstat)
             continue;
 
-        char comm_buf[256] = {0};
-        char state = '?';
-        unsigned long utime = 0, stime = 0;
-        long rss = 0;
-        long num_threads = 0;
-
-        // parse /proc/<pid>/stat
-        // I'm sorry
-        int n = fscanf(
-            fstat,
-            "%*d (%255[^)]) %c "          // comm, state
-            "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s "  // skip 4–13
-            "%lu %lu "                    // utime, stime
-            "%*s %*s %*s %*s "            // skip 16–19
-            "%ld"                         // num_threads
-            "%*s %*s %*s "                // skip 21-23
-            "%ld",                        // rss
-            comm_buf,
-            &state,
-            &utime,
-            &stime,
-            &num_threads,
-            &rss
-        );
-
+        char stat_line[1024];
+        if (!fgets(stat_line, sizeof(stat_line), fstat)) {
+            fclose(fstat);
+            continue;
+        }
         fclose(fstat);
 
-        if (n != 6)
-            continue;
+        // Parse stat_line: pid (comm) state ...
+        // Find first '(' and last ')'
+        // Truly genius
+        char *lparen = strchr(stat_line, '(');
+        char *rparen = strrchr(stat_line, ')');
+        if (!lparen || !rparen || lparen > rparen) continue;
+        size_t comm_len = rparen - lparen - 1;
+        if (comm_len >= sizeof(p.name)) comm_len = sizeof(p.name) - 1;
 
-        safe_strncpy(p.name, comm_buf, sizeof(p.name));
+        // We plus 1 to lparen and comm_len to not truncate the end or start of the process name
+        safe_strncpy(p.name, lparen + 1, comm_len + 1);
+        p.name[comm_len] = '\0';
 
-        // Set the thread count
+        // Get state (char after rparen + space)
+        char *after_rparen = rparen + 2;
+        char state = *after_rparen;
+
+        p.status.state = state;
+
+        // Tokenize after state
+        char *fields = after_rparen + 2;
+        int field_index = 3; // pid, comm, state already parsed
+        char *tok = strtok(fields, " ");
+
+        // Create our variables
+        long num_threads = 0;
+        unsigned long long start_time = 0;
+        long rss = 0;
+        int found_threads = 0, found_start = 0, found_rss = 0;
+        
+        while (tok) {
+            // The field index is -1 from normal documentation. 19 = 20
+            if (field_index == 19) { // num_threads
+                num_threads = atol(tok);
+                found_threads = 1;
+            } else if (field_index == 21) { // start_time
+                start_time = strtoull(tok, NULL, 10);
+                found_start = 1;
+            } else if (field_index == 23) { // rss
+                rss = atol(tok);
+                found_rss = 1;
+                break; // we get outa here
+            }
+
+            tok = strtok(NULL, " ");
+            field_index++;
+        }
+        
+        if (!(found_threads && found_start && found_rss)) continue;
+
         snprintf(p.status.threads, sizeof(p.status.threads), "%ld", num_threads);
 
         // Get proc owner
         struct stat st;
         char procpath[64];
         snprintf(procpath, sizeof(procpath), "/proc/%d", pid);
-
         if (stat(procpath, &st) == 0) {
             uid_t uid = st.st_uid;
             safe_strncpy(p.owner, get_proc_user(uid), sizeof(p.owner));
         }
-             
+
         // Read /proc/<pid>/cmdline for command line
         char cmdline_path[PATH_MAX];
         snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
@@ -374,7 +405,6 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         if (fcmd) {
             size_t n = fread(p.cmdline, 1, sizeof(p.cmdline) - 1, fcmd);
             fclose(fcmd);
-            // cmdline is null-separated, replace with spaces
             for (size_t i = 0; i < n; ++i) {
                 if (p.cmdline[i] == '\0') p.cmdline[i] = ' ';
             }
@@ -383,17 +413,16 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             p.cmdline[0] = '\0';
         }
 
-        // RAM calculation: use system page size
+        // Set variables required for sort mode
         long page_size = sysconf(_SC_PAGESIZE);
         switch (args->sort_mode) {
             case SWSORT_RAM:
                 p.ram = rss * page_size / (1024 * 1024);  // convert to MB
                 break;
             case SWSORT_AGE:
-                p.start_time = get_proc_start_time(pid);
+                p.start_time = start_time;
                 break;
             default:
-                // If no sort, or unknown, only fill basic info
                 break;
         }
 
@@ -519,6 +548,7 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
     run_hook(args->post_hook, matches[selected[0]].pid, matches[selected[0]].name);
 }
 
+/* Scans the /proc directory for processes */
 int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
     compiled_pattern_t compiled[MAX_PATTERNS];
     compile_patterns(args, plist, compiled);

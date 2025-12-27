@@ -4,11 +4,7 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 
 ## TODO
 
-- Make sure cmdl and threads display properly when in verbose (-v) mode.
-- Update verbose mode.
-- Create a command for adding the shell completions (write to file).
 - Code cleanup:
-  - Main function path needs to be more clear.
   - Comments need to be quite a lot better.
   - Split up "find_matching_processes" even more.
   - Rename many functions to better suit their function.
@@ -18,6 +14,8 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 - Write "program.md". It will layout how the program runs and the purpose of each file. Write AFTER the main function is reorginized!!!
 - Improve error handling greatly.
 - Make sure ?-args dont just use sort mode.
+- args->sig & sig_str and being set. We can instead set sig, then fetch sig_str from the array on use time. Double check to make sure this is faster
+- -<sig> does not work. Done got borked during the great clean up
 
 ## Features and Tweaks
 
@@ -27,14 +25,12 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 - Additional scripting hooks.
 - Process tree support.
 - Argument for hiding root processes.
-- Argument for showing the swordfish version.
 - Argument for watching processes update live (spying).
 - JSON/CSV export of process lists.
 - Plugin and scripting support.
 - Ncurses interface.
 - Add impl tests to swordfish.
 - Sort mode for process state (running, sleeping, zombie).
-- Sort mode for process age.
 - Process fuzzy finder? I have no idea.
 - Improved CLI help output.
 - Create a man page for swordfish.
