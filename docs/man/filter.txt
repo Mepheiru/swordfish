@@ -1,0 +1,16 @@
+Filtering -- Which processes are matched -- Compiled for v1.2.2
+
+The process list can have filters placed on it to help narrow down the list or give more information on specified processes. Bellow are some of the arguments that effect filtering or information shown.
+
+  -x                     Exact match process names (default: substring match)
+  -u <USER>              Filter processes by username
+  -R                     Hide processes that are owned by root
+  --exclude <pattern>    Exclude processes matching pattern
+  --sort <ram|age>       Sort process list by RAM or age
+
+When sorting the process list, the alies "?<ram|age>" can also be used instead of the long-opt version. For example: 
+
+  ?<ram|age>             Alies for "--sort"
+  ?ram                   Will sort the process list by highest to lowest ram usage
+
+The defualt filtering/sorting mode for swordfish is the same as the order in "/proc". Ussaly this will display as lowest to highest PID number.

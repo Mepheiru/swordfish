@@ -8,8 +8,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern const char _binary_docs_general_txt_start[];
-extern const char _binary_docs_general_txt_end[];
+extern const unsigned char _binary_docs_man_help_txt_start[];
+extern const unsigned char _binary_docs_man_help_txt_end[];
+extern const unsigned char _binary_docs_man_general_txt_start[];
+extern const unsigned char _binary_docs_man_general_txt_end[];
+extern const unsigned char _binary_docs_man_signals_txt_start[];
+extern const unsigned char _binary_docs_man_signals_txt_end[];
+extern const unsigned char _binary_docs_man_filter_txt_start[];
+extern const unsigned char _binary_docs_man_filter_txt_end[];
+extern const unsigned char _binary_docs_man_behavior_txt_start[];
+extern const unsigned char _binary_docs_man_behavior_txt_end[];
+extern const unsigned char _binary_docs_man_misc_txt_start[];
+extern const unsigned char _binary_docs_man_misc_txt_end[];
 
 static void man_general(FILE *out, bool isman);
 static void man_signals(FILE *out, bool isman);
@@ -112,35 +122,24 @@ const swordfish_option_map_t option_category_map[] = {
 const size_t option_category_map_count =
     sizeof(option_category_map) / sizeof(option_category_map[0]);
 
-static void format_option(char *buf, size_t size, const swordfish_option_t *opt) {
-    buf[0] = '\0';
+/* Parses and prints text from an inputed file.
+    The parser will skip any line starting with "#" (comment) */
+static void print_embedded(FILE *out, const unsigned char *start, const unsigned char *end) {
+    const unsigned char *line_start = start;
 
-    if (opt->short_flag && opt->long_flag) {
-        snprintf(buf, size, "%s, %s", opt->short_flag, opt->long_flag);
-    } else if (opt->short_flag) {
-        snprintf(buf, size, "%s", opt->short_flag);
-    } else if (opt->long_flag) {
-        snprintf(buf, size, "%s", opt->long_flag);
+    for (const unsigned char *p = start; p <= end; p++) {
+        if (p == end || *p == '\n') {
+            size_t len = (size_t)(p - line_start);
+
+            // Skip empty lines or lines starting with '#'
+            if (len > 0 && line_start[0] != '#') {
+                fwrite(line_start, 1, len, out);
+                fputc('\n', out); // ensure newline
+            }
+
+            line_start = p + 1;
+        }
     }
-
-    if (opt->arg) {
-        strncat(buf, " ", size - strlen(buf) - 1);
-        strncat(buf, opt->arg, size - strlen(buf) - 1);
-    }
-}
-
-static const swordfish_option_t *find_option(const char *short_flag, const char *long_flag) {
-    for (size_t i = 0; i < swordfish_options_count; ++i) {
-        const swordfish_option_t *opt = &swordfish_options[i];
-        if ((short_flag && opt->short_flag && strcmp(opt->short_flag, short_flag) == 0) ||
-            (long_flag && opt->long_flag && strcmp(opt->long_flag, long_flag) == 0))
-            return opt;
-    }
-    return NULL;
-}
-
-static void print_embedded(FILE *out, const char *start, const char *end) {
-    fwrite(start, 1, (size_t)(end - start), out);
 }
 
 /* Prints the usage block
@@ -170,7 +169,10 @@ void usage(const char *prog) {
 
 /* Prints full help block
    Usually called on "--help" or "--help <category>" */
-void help(const char *prog, const char *category) {
+void help(const char *category) {
+    const unsigned char *start = _binary_docs_man_help_txt_start;
+    const unsigned char *end = _binary_docs_man_help_txt_end;
+
     if (category) {
         if (strcmp(category, "general") == 0) {
             man_general(stdout, false);
@@ -193,115 +195,79 @@ void help(const char *prog, const char *category) {
         }
     }
 
-    // Help
-    printf("Swordfish -- A pkill-like CLI tool\n\n");
-    printf("Usage: %s [options] pattern [pattern ...]\n\n", prog);
-    printf("Help categories:\n");
-    for (size_t i = 0; i < help_category_count; ++i)
-        printf("  %-10s %s\n", help_categories[i].name, help_categories[i].description);
-    printf("\nRun '%s --help <category>' for more.\n", prog);
+    // help.txt
+    print_embedded(stdout, start, end);
 }
 
 // Functions called to display a help category.
 // Theses are also used to generate the man pages
 static void man_general(FILE *out, bool isman) {
-    if (!isman)
-        fprintf(out, "General Options -- Basic Usage for swordfish -- Compiled for %s \n\n", SWORDFISH_VERSION);
+    const unsigned char *start = _binary_docs_man_general_txt_start;
+    const unsigned char *end = _binary_docs_man_general_txt_end;
 
-    fprintf(out, "All flags (-<opt>) can be grouped together. For example: \"-K -S\" can be turned "
-                 "into: \"-KS\".\nBellow are some of the commonly used options used to control how "
-                 "swordfish interacts with and finds procceses.\n\n");
-
-    for (size_t i = 0; i < option_category_map_count; ++i) {
-        const swordfish_option_map_t *map = &option_category_map[i];
-        if (strcmp(map->category, "general") != 0)
-            continue;
-        const swordfish_option_t *opt = find_option(map->short_flag, map->long_flag);
-        if (!opt)
-            continue;
-        char buf[64];
-        format_option(buf, sizeof(buf), opt);
-        fprintf(out, "  %-22s %s\n", buf, opt->desc);
+     if (isman) {
+        int newlines = 0;
+        const unsigned char *p = start;
+        while (p < end && newlines < 2) {
+            if (*p == '\n') newlines++;
+            p++;
+        }
+        start = p; // new start position
     }
-    fprintf(out, "\n");
 
-    fprintf(out, "Using swordfish without any arguments, but supplying a pattern can be used to "
-                 "search for processes and get info on them. Swordfish will only send signals to a "
-                 "proccess when the user requests it.\nBy default, swordfish will ask for "
-                 "confirmation from the user. However, the argument \"-y\" can be used to skip the "
-                 "confirmation and execute imidietly.\n");
+    print_embedded(out, start, end);
 }
 
+
 static void man_signals(FILE *out, bool isman) {
-    if (!isman)
-        fprintf(out, "Signal Control -- How swordfish sends signals -- Compiled for %s \n\n", SWORDFISH_VERSION);
+    const unsigned char *start = _binary_docs_man_signals_txt_start;
+    const unsigned char *end = _binary_docs_man_signals_txt_end;
 
-    fprintf(out, "Swordfish gives the user extensive control over the signals sent to procceses. "
-                 "Bellow are some arguments that effect how swordfish sends signals.\n\n");
-
-    for (size_t i = 0; i < option_category_map_count; ++i) {
-        const swordfish_option_map_t *map = &option_category_map[i];
-        if (strcmp(map->category, "signals") != 0)
-            continue;
-        const swordfish_option_t *opt = find_option(map->short_flag, map->long_flag);
-        if (!opt)
-            continue;
-        char buf[64];
-        format_option(buf, sizeof(buf), opt);
-        fprintf(out, "  %-22s %s\n", buf, opt->desc);
+     if (isman) {
+        int newlines = 0;
+        const unsigned char *p = start;
+        while (p < end && newlines < 2) {
+            if (*p == '\n') newlines++;
+            p++;
+        }
+        start = p; // new start position
     }
-    fprintf(out, "\n");
 
-    fprintf(out, "The signals \"-k\" and \"-K\" act as soft and hard kill respectivly.\nSignals "
-                 "other then KILL/TERM can be sent by using \"-<sig>\". For example: \"-10\" would "
-                 "send USR1 to the procces.\nAs stated in General Operation, flags can be grouped "
-                 "together. If \"-k\" and \"-K\" where grouped together (-kK) the arugment parser "
-                 "will use the last argument (K). \n");
+    print_embedded(out, start, end);
 }
 
 static void man_filter(FILE *out, bool isman) {
-    if (!isman)
-        fprintf(out, "Filtering -- Which processes are matched -- Compiled for %s \n\n", SWORDFISH_VERSION);
+    const unsigned char *start = _binary_docs_man_filter_txt_start;
+    const unsigned char *end = _binary_docs_man_filter_txt_end;
 
-    fprintf(out, "The process list can have filters placed on it to help narrow down the list or give more information on specified processes. Bellow are some of the arguments that effect filtering or information shown.\n\n");
-    
-    for (size_t i = 0; i < option_category_map_count; ++i) {
-        const swordfish_option_map_t *map = &option_category_map[i];
-        if (strcmp(map->category, "filter") != 0)
-            continue;
-        const swordfish_option_t *opt = find_option(map->short_flag, map->long_flag);
-        if (!opt)
-            continue;
-        char buf[64];
-        format_option(buf, sizeof(buf), opt);
-        fprintf(out, "  %-22s %s\n", buf, opt->desc);
+     if (isman) {
+        int newlines = 0;
+        const unsigned char *p = start;
+        while (p < end && newlines < 2) {
+            if (*p == '\n') newlines++;
+            p++;
+        }
+        start = p; // new start position
     }
-    fprintf(out, "\n");
 
-    fprintf(out, "When sorting the process list, the alies \"?<ram|age>\" can also be used instead of the long-opt version. For example: \n\n");
-    fprintf(out, "  %-22s %s\n", "?<ram|age>", "Alies for \"--sort\"");
-    fprintf(out, "  %-22s %s\n\n", "?ram", "Will sort the process list by highest to lowest ram usage");
-    fprintf(out, "The defualt filtering/sorting mode for swordfish is the same as the order in \"/proc\". Ussaly this will display as lowest to highest PID number.");
+    print_embedded(out, start, end);
 }
 
 static void man_behavior(FILE *out, bool isman) {
-    if (!isman)
-        fprintf(out, "Behavior -- Confirmation and execution behavior -- Compiled for %s \n\n", SWORDFISH_VERSION);
+    const unsigned char *start = _binary_docs_man_behavior_txt_start;
+    const unsigned char *end = _binary_docs_man_behavior_txt_end;
 
-    fprintf(out, "Temp\n\n");
-
-    for (size_t i = 0; i < option_category_map_count; ++i) {
-        const swordfish_option_map_t *map = &option_category_map[i];
-        if (strcmp(map->category, "behavior") != 0)
-            continue;
-        const swordfish_option_t *opt = find_option(map->short_flag, map->long_flag);
-        if (!opt)
-            continue;
-        char buf[64];
-        format_option(buf, sizeof(buf), opt);
-        fprintf(out, "  %-22s %s\n", buf, opt->desc);
+     if (isman) {
+        int newlines = 0;
+        const unsigned char *p = start;
+        while (p < end && newlines < 2) {
+            if (*p == '\n') newlines++;
+            p++;
+        }
+        start = p; // new start position
     }
-    fprintf(out, "\n");
+
+    print_embedded(out, start, end);
 }
 
 // static void man_output(FILE *out, bool isman) {
@@ -319,24 +285,23 @@ static void man_behavior(FILE *out, bool isman) {
 // }
 
 static void man_misc(FILE *out, bool isman) {
-    if (!isman)
-        fprintf(out, "Miscellaneous -- temp desc -- Compiled for %s \n\n", SWORDFISH_VERSION);
+    const unsigned char *start = _binary_docs_man_misc_txt_start;
+    const unsigned char *end = _binary_docs_man_misc_txt_end;
 
-    for (size_t i = 0; i < option_category_map_count; ++i) {
-        const swordfish_option_map_t *map = &option_category_map[i];
-        if (strcmp(map->category, "misc") != 0)
-            continue;
-        const swordfish_option_t *opt = find_option(map->short_flag, map->long_flag);
-        if (!opt)
-            continue;
-        char buf[64];
-        format_option(buf, sizeof(buf), opt);
-        fprintf(out, "  %-22s %s\n", buf, opt->desc);
+     if (isman) {
+        int newlines = 0;
+        const unsigned char *p = start;
+        while (p < end && newlines < 2) {
+            if (*p == '\n') newlines++;
+            p++;
+        }
+        start = p; // new start position
     }
-    fprintf(out, "\n");
+
+    print_embedded(out, start, end);
 }
 
-void help_man(const char *path) {
+void gen_man(const char *path) {
     FILE *out = path ? fopen(path, "w") : stdout;
 
     if (!out) {

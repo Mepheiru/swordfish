@@ -1,0 +1,10 @@
+Behavior -- Confirmation and execution behavior -- Compiled for v1.2.2 
+
+Temp
+
+  -y                     Auto-confirm kills; skip prompts and sudo confirmation
+  -t                     Always select the top process
+  -r <time>              Retry on failure after waiting <time> seconds
+  -v                     Increase verbosity level up to -vvv for maximum verbosity
+  --pre-hook <script>    Run <script> before sending signals
+  --post-hook <script>   Run <script> after sending signals

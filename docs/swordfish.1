@@ -10,52 +10,43 @@ swordfish \- A pkill-like CLI tool
 .SH GENERAL OPTIONS
 All flags (-<opt>) can be grouped together. For example: "-K -S" can be turned into: "-KS".
 Bellow are some of the commonly used options used to control how swordfish interacts with and finds procceses.
-
   -h, --help             Show help message
   -v                     Increase verbosity level up to -vvv for maximum verbosity
   -k                     Send SIGTERM to matching processes (Graceful shutdown)
   -y                     Auto-confirm kills; skip prompts and sudo confirmation
-
 Using swordfish without any arguments, but supplying a pattern can be used to search for processes and get info on them. Swordfish will only send signals to a proccess when the user requests it.
 By default, swordfish will ask for confirmation from the user. However, the argument "-y" can be used to skip the confirmation and execute imidietly.
 .SH SIGNAL CONTROL
 Swordfish gives the user extensive control over the signals sent to procceses. Bellow are some arguments that effect how swordfish sends signals.
-
   -k                     Send SIGTERM to matching processes (Graceful shutdown)
   -K                     Send SIGKILL to matching processes (Forceful shutdown)
-
 The signals "-k" and "-K" act as soft and hard kill respectivly.
 Signals other then KILL/TERM can be sent by using "-<sig>". For example: "-10" would send USR1 to the procces.
 As stated in General Operation, flags can be grouped together. If "-k" and "-K" where grouped together (-kK) the arugment parser will use the last argument (K). 
 .SH FILTERING
 The process list can have filters placed on it to help narrow down the list or give more information on specified processes. Bellow are some of the arguments that effect filtering or information shown.
-
   -x                     Exact match process names (default: substring match)
   -u <USER>              Filter processes by username
   -R                     Hide processes that are owned by root
   --exclude <pattern>    Exclude processes matching pattern
   --sort <ram|age>       Sort process list by RAM or age
-
 When sorting the process list, the alies "?<ram|age>" can also be used instead of the long-opt version. For example: 
-
   ?<ram|age>             Alies for "--sort"
   ?ram                   Will sort the process list by highest to lowest ram usage
-
-The defualt filtering/sorting mode for swordfish is the same as the order in "/proc". Ussaly this will display as lowest to highest PID number..SH BEHAVIOR
+The defualt filtering/sorting mode for swordfish is the same as the order in "/proc". Ussaly this will display as lowest to highest PID number.
+.SH BEHAVIOR
 Temp
-
   -y                     Auto-confirm kills; skip prompts and sudo confirmation
   -t                     Always select the top process
   -r <time>              Retry on failure after waiting <time> seconds
   -v                     Increase verbosity level up to -vvv for maximum verbosity
   --pre-hook <script>    Run <script> before sending signals
   --post-hook <script>   Run <script> after sending signals
-
 .SH MISCELLANEOUS
+Temp
   --completions <shell> [file] Generate shell completions for <shell> (fish, bash, zsh) and output to file if provided
   --man [file]           Generates the man page for swordfish and output to file if provided
   --version              Shows the current version of your Swordfish install. That's it.
-
 .SH EXAMPLES
 .TP
 %s -k firefox

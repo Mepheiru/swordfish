@@ -1,0 +1,10 @@
+Signal Control -- How swordfish sends signals -- Compiled for v1.2.2
+
+Swordfish gives the user extensive control over the signals sent to procceses. Bellow are some arguments that effect how swordfish sends signals.
+
+  -k                     Send SIGTERM to matching processes (Graceful shutdown)
+  -K                     Send SIGKILL to matching processes (Forceful shutdown)
+
+The signals "-k" and "-K" act as soft and hard kill respectivly.
+Signals other then KILL/TERM can be sent by using "-<sig>". For example: "-10" would send USR1 to the procces.
+As stated in General Operation, flags can be grouped together. If "-k" and "-K" where grouped together (-kK) the arugment parser will use the last argument (K). 

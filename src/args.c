@@ -219,7 +219,7 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
             break;
         case 1007: {
             const char *out_path = (optind < *argc) ? argv[optind++] : NULL;
-            help_man(out_path);
+            gen_man(out_path);
             exit(0);
         }
 

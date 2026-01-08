@@ -23,7 +23,7 @@ HEADERS = src/args.h src/process.h src/main.h src/hooks.h src/help.h
 OBJ_DEV = $(SRC:src/%.c=$(DEV_BUILDDIR)/%.o)
 OBJ_REL = $(SRC:src/%.c=$(REL_BUILDDIR)/%.o)
 
-DOCS = docs/man/general.txt docs/man/signals.txt docs/man/filter.txt docs/man/behavior.txt docs/man/misc.txt
+DOCS = docs/man/help.txt docs/man/general.txt docs/man/signals.txt docs/man/filter.txt docs/man/behavior.txt docs/man/misc.txt
 
 DOC_OBJ_DEV = $(DOCS:docs/%.txt=$(DEV_BUILDDIR)/docs_%.o)
 DOC_OBJ_REL = $(DOCS:docs/%.txt=$(REL_BUILDDIR)/docs_%.o)

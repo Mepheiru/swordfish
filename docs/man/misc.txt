@@ -1,0 +1,7 @@
+Miscellaneous -- temp desc -- Compiled for v1.2.2 
+
+Temp
+
+  --completions <shell> [file] Generate shell completions for <shell> (fish, bash, zsh) and output to file if provided
+  --man [file]           Generates the man page for swordfish and output to file if provided
+  --version              Shows the current version of your Swordfish install. That's it.
