@@ -56,13 +56,13 @@ const swordfish_option_t swordfish_options[] = {
 const size_t swordfish_options_count = sizeof(swordfish_options) / sizeof(swordfish_options[0]);
 
 const swordfish_usage_example_t swordfish_usage[] = {
-    {"%s -k firefox", "Kill all processes with 'firefox' in the name"},
-    {"%s -kx bash", "Kill all exact matches of 'bash'"},
-    {"%s -Sk KILL vim", "Interactively select vim processes and send SIGKILL"},
-    {"%s -ky firefox vim bash",
+    {"-k firefox", "Kill all processes with 'firefox' in the name"},
+    {"-kx bash", "Kill all exact matches of 'bash'"},
+    {"-Sk KILL vim", "Interactively select vim processes and send SIGKILL"},
+    {"-ky firefox vim bash",
      "Kill all 'firefox', 'vim', and 'bash' processes without confirmation"},
-    {"%s -kyr 1 firefox", "Recursively kill 'firefox' every 1 second"},
-    {"%s --pre-hook script1.sh nvim", "Run 'script1.sh' before killing Neovim"},
+    {"-kyr 1 firefox", "Recursively kill 'firefox' every 1 second"},
+    {"--pre-hook script1.sh nvim", "Run 'script1.sh' before killing Neovim"},
 };
 
 const swordfish_completion_guide_t swordfish_completion_guide[] = {
@@ -122,24 +122,9 @@ const swordfish_option_map_t option_category_map[] = {
 const size_t option_category_map_count =
     sizeof(option_category_map) / sizeof(option_category_map[0]);
 
-/* Parses and prints text from an inputed file.
-    The parser will skip any line starting with "#" (comment) */
+
 static void print_embedded(FILE *out, const unsigned char *start, const unsigned char *end) {
-    const unsigned char *line_start = start;
-
-    for (const unsigned char *p = start; p <= end; p++) {
-        if (p == end || *p == '\n') {
-            size_t len = (size_t)(p - line_start);
-
-            // Skip empty lines or lines starting with '#'
-            if (len > 0 && line_start[0] != '#') {
-                fwrite(line_start, 1, len, out);
-                fputc('\n', out); // ensure newline
-            }
-
-            line_start = p + 1;
-        }
-    }
+    fwrite(start, 1, (size_t)(end - start), out);
 }
 
 /* Prints the usage block

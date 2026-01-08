@@ -1,13 +1,12 @@
 Swordfish -- A pkill-like CLI tool
 
-Usage: ./build/swordfish [options] pattern [pattern ...]
+Usage: swordfish [options] pattern [pattern ...]
 
 Help categories:
   general    Basic Usage for swordfish
   signals    How swordfish sends signals
   filter     Which processes are matched
   behavior   Confirmation and execution behavior
-#  Output and verbosity control
   misc       Miscellaneous features
 
-Run './build/swordfish --help <category>' for more.
+Run 'swordfish --help <category>' for more.
