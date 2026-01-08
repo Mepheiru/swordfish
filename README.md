@@ -1,27 +1,28 @@
 # Swordfish
-`Swordfish` is a pkill-like CLI tool that's feature-rich and written in C. It lets you find and kill processes with ease and cleaner flag syntax.
+`Swordfish` is a pkill-like CLI tool that's feature-rich and written in C. It lets you find and kill processes with ease and saftey.
 
 ## Why use this instead of pkill?
-Swordfish was made to make managing processes easier. It started as a project for me (seaslug) to learn C. Why use Swordfish instead of pkill or other tools? Below are some reasons!
-- You prefer grouped, pacman-style flags (e.g. `-ky`)
-- You want more safety if you kill the wrong process or PID
+Swordfish was created to make managing processes easier. It started as a project for me (seaslug) to learn C, which then snowballed into a full on process manager. Why use Swordfish instead of pkill or other tools? Below are some reasons!
+- You prefer more control via grouped flags (e.g. `-ky`)
+- You want more safety if you kill the wrong process
 - You like lightweight, clean, CLI tools
-- You want to not only kill processes but also view information about them
+- You want to not only kill processes but also view information about them quickly
 
 ## Features
 - Grouped flags like `-Sky` (inspired by pacman)
 - Raw signal support (e.g. `-10`, `-15`, `TERM`, `KILL`)
 - Lightweight and dependency-free (for now)
-- re- and post-kill script hooks (`--pre-hook` / `--post-hook`)
+- pre and post-kill script hooks (`--pre-hook <file>` / `--post-hook <file>`)
 - Basic regex support
 - Static mode for read-only listing
 - Verbose process info
-- Sorting by RAM, CPU, or age
-- Pattern exclusions (`--exclude`)
+- Sorting modes (RAM, CPU, age)
+- Pattern exclusions (`--exclude <pattern>`)
 - Built-in retry functionality (`-r <time>`)
 - Auto-completions for Bash, Fish, and Zsh
+- And much more...
 
-More can be found on the help page
+More can be found on the help pages
 ###
 
 ![swordfish preview](assets/img1.png)
@@ -51,7 +52,7 @@ swordfish -TERM --pre-hook script1.sh --post-hook script2.sh nvim
 ```
 
 ## Installation
-From the AUR (using an AUR pkg manager):
+From the AUR (AUR pkg manager):
 ```bash
 yay -S swordfish-git
 ```
@@ -64,29 +65,25 @@ makepkg -si
 ```
 
 ## Building From Source
-Building from source is pretty easy. All you need is `gcc` and `make` (for now):
+Building from source is fairly easy. All you need is `gcc` and `make` (for now). Our makefile is fairly built out, meaning it can do quite a lot.
+
+Default Build (dev ENV):
 ```bash
 git clone https://github.com/Foox-dev/swordfish
 cd swordfish
 make
+# Binary is outputed to the build directory in root
+````
+
+Release build (Recommended)
+```bash
+git clone https://github.com/Foox-dev/swordfish
+cd swordfish
+make rel
+# Binary is outputed to build/release
 ```
 
-## Currently Planned Features
-- Config file support for default flags and settings
-- Improved piping support for safer read-only mode
-- Advanced regex features
-- Additional scripting hooks
-- Process tree support
-- "Hide root processes" argument
-- "Version" argument
-- "Spy" argument. Watch processes update live
-
-
-## Possible Future Additions
-- JSON/CSV export of process lists
-- Plugin system or modular extensions
-- Ncurses interface
-
+By default, the build script will automaticly compile docs into `docs`. For now this is not an issue since the project is relativly small.
 
 ## License
 MIT

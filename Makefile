@@ -8,7 +8,7 @@
 
 CC ?= gcc
 CFLAGS_DEV ?= -Wall -Wextra -g -std=gnu11
-CFLAGS_REL ?= -Wall -Wextra -Werror -O3
+CFLAGS_REL ?= -Wall -Wextra -Werror -O3 -std=gnu11
 LDFLAGS ?= 
 
 PREFIX ?= /usr/local
@@ -17,14 +17,14 @@ BINDIR ?= $(PREFIX)/bin
 DEV_BUILDDIR = build
 REL_BUILDDIR = build/release
 
-SRC = src/main.c src/args.c src/process.c src/hooks.c
-HEADERS = src/args.h src/process.h src/main.h src/hooks.h
+SRC = src/main.c src/args.c src/process.c src/hooks.c src/help.c
+HEADERS = src/args.h src/process.h src/main.h src/hooks.h src/help.h
 
 OBJ_DEV = $(SRC:src/%.c=$(DEV_BUILDDIR)/%.o)
 OBJ_REL = $(SRC:src/%.c=$(REL_BUILDDIR)/%.o)
 
 # Progress tracking
-TOTAL = $(shell echo $$(($(words $(SRC)) + 1)))  # +1 for linking
+TOTAL = $(shell echo $$(($(words $(SRC)) + 2)))  # +2 for linking and docs
 WIDTH = $(shell echo $$((${TOTAL}<10?1:${TOTAL}<100?2:3)))
 
 
@@ -45,6 +45,11 @@ $(DEV_BUILDDIR)/swordfish: $(OBJ_DEV)
 	@$(eval COUNT=$(shell echo $$(($(COUNT)+1))))
 	@printf "[%*d/%d] Linking %s (dev)\n" $(WIDTH) $(COUNT) $(TOTAL) $@
 	@$(CC) $(OBJ_DEV) $(LDFLAGS) -o $@
+
+	@$(eval COUNT=$(shell echo $$(($(COUNT)+1))))
+	@printf "[%*d/%d] Generating docs (dev)\n" $(WIDTH) $(COUNT) $(TOTAL)
+	@$(DEV_BUILDDIR)/swordfish --man docs/swordfish.1
+
 	@echo "Dev build complete. Binary located in $(DEV_BUILDDIR)"
 
 
@@ -62,6 +67,12 @@ $(REL_BUILDDIR)/swordfish: $(OBJ_REL)
 	@$(eval COUNT=$(shell echo $$(($(COUNT)+1))))
 	@printf "[%*d/%d] Linking %s (release)\n" $(WIDTH) $(COUNT) $(TOTAL) $@
 	@$(CC) $(OBJ_REL) $(LDFLAGS) -o $@
+
+	@$(eval COUNT=$(shell echo $$(($(COUNT)+1))))
+	@printf "[%*d/%d] Generating docs (release)\n" $(WIDTH) $(COUNT) $(TOTAL)
+	@$(REL_BUILDDIR)/swordfish --man docs/swordfish.1
+
+	@echo "NOTE: Please increment package version in main.h"
 	@echo "Release build complete. Binary located in $(REL_BUILDDIR)"
 
 
@@ -75,3 +86,6 @@ uninstall:
 
 clean:
 	rm -rf $(DEV_BUILDDIR) $(REL_BUILDDIR)
+
+format:
+	clang-format -i src/*.c
