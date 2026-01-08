@@ -1,5 +1,6 @@
 #pragma once
 #define _GNU_SOURCE
+
 #include "args.h"
 #include <regex.h>
 #include <stdbool.h>

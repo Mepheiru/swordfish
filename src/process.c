@@ -1,23 +1,16 @@
 #include "process.h"
-#include "args.h"
 #include "hooks.h"
 #include "main.h"
 
 #include <ctype.h>
 #include <dirent.h>
-#include <limits.h>
-#include <pwd.h>
-#include <regex.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 
+#include <sys/types.h>
 #include <sys/stat.h>
 
 /* Check if a directory name is a valid process directory */
@@ -29,16 +22,17 @@ static bool is_proc_dir(const char *name) {
 }
 
 bool is_all_digits(const char *s) {
-    if (!s || !*s) return false;
+    if (!s || !*s)
+        return false;
 
     const unsigned char *p = (const unsigned char *)s;
     while (*p) {
-        if (*p < '0' || *p > '9') return false;
+        if (*p < '0' || *p > '9')
+            return false;
         p++;
     }
     return true;
 }
-
 
 bool is_zombie_process(pid_t pid) {
     char path[PATH_MAX], line[256];
@@ -81,10 +75,21 @@ bool is_interactive(void) {
 static inline bool looks_like_regex(const char *s) {
     while (*s) {
         switch (*s) {
-            case '^': case '$': case '.': case '*': case '+':
-            case '?': case '[': case ']': case '(': case ')':
-            case '{': case '}': case '|': case '\\':
-                return true;
+        case '^':
+        case '$':
+        case '.':
+        case '*':
+        case '+':
+        case '?':
+        case '[':
+        case ']':
+        case '(':
+        case ')':
+        case '{':
+        case '}':
+        case '|':
+        case '\\':
+            return true;
         }
         s++;
     }
@@ -112,8 +117,7 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
         size_t len = strlen(c->pattern);
         bool force_exact = false;
 
-        if (strpbrk(c->pattern, "^$.*+?[](){}|\\") == NULL)
-            return;
+        bool has_regex = strpbrk(c->pattern, "^$.*+?[](){}|\\") != NULL;
 
         if ((args->exact_match) ||
             (len >= 2 && c->pattern[0] == '^' && c->pattern[len - 1] == '$')) {
@@ -124,9 +128,9 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
             }
         }
 
-        if (force_exact ) {
+        if (force_exact) {
             c->type = PAT_EXACT;
-        } else {
+        } else if (has_regex) {
             int rc = regcomp(&c->regex, c->pattern, REG_ICASE | REG_NOSUB | REG_EXTENDED);
             if (rc != 0) {
                 char errbuf[256];
@@ -136,6 +140,8 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
             } else {
                 c->type = PAT_REGEX;
             }
+        } else {
+            c->type = PAT_SUBSTR;
         }
     }
 }
@@ -231,27 +237,30 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
 
     // Verbose
     if (args->verbose_level >= 3 || !tty) {
-        printf("[%c] %d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->status.state, p->pid, p->name, p->cmdline, p->status.threads);
+        printf("[%c] %d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->status.state, p->pid,
+               p->name, p->cmdline, p->status.threads);
         printf(owner_fmt, p->owner);
         printf("\n    RAM: \"%ld MB\" AGE: \"%ld min\"", p->ram, age_min);
 
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
     } else if (args->verbose_level == 2) {
-        printf("[%c] %d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->status.state, p->pid, p->name, p->cmdline, p->status.threads);
+        printf("[%c] %d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->status.state, p->pid,
+               p->name, p->cmdline, p->status.threads);
         printf(owner_fmt, p->owner);
 
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
     } else if (args->verbose_level == 1) {
         // Medium
-        printf("%d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->pid, p->name, p->cmdline, p->status.threads);
+        printf("%d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->pid, p->name, p->cmdline,
+               p->status.threads);
         printf(owner_fmt, p->owner);
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
     }
 
-    // Normal 
+    // Normal
     else {
         printf("%s %d \"%s\" owned by ", prefix, p->pid, p->name);
         printf(owner_fmt, p->owner);
@@ -342,9 +351,11 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         // Truly genius
         char *lparen = strchr(stat_line, '(');
         char *rparen = strrchr(stat_line, ')');
-        if (!lparen || !rparen || lparen > rparen) continue;
+        if (!lparen || !rparen || lparen > rparen)
+            continue;
         size_t comm_len = rparen - lparen - 1;
-        if (comm_len >= sizeof(p.name)) comm_len = sizeof(p.name) - 1;
+        if (comm_len >= sizeof(p.name))
+            comm_len = sizeof(p.name) - 1;
 
         // We plus 1 to lparen and comm_len to not truncate the end or start of the process name
         safe_strncpy(p.name, lparen + 1, comm_len + 1);
@@ -366,7 +377,7 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         unsigned long long start_time = 0;
         long rss = 0;
         int found_threads = 0, found_start = 0, found_rss = 0;
-        
+
         while (tok) {
             // The field index is -1 from normal documentation. 19 = 20
             if (field_index == 19) { // num_threads
@@ -384,8 +395,9 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             tok = strtok(NULL, " ");
             field_index++;
         }
-        
-        if (!(found_threads && found_start && found_rss)) continue;
+
+        if (!(found_threads && found_start && found_rss))
+            continue;
 
         snprintf(p.status.threads, sizeof(p.status.threads), "%ld", num_threads);
 
@@ -398,6 +410,11 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             safe_strncpy(p.owner, get_proc_user(uid), sizeof(p.owner));
         }
 
+        // Skip proceses owned by root if hide_root is enabled
+        if (args->hide_root && strcmp(p.owner, "root") == 0) {
+            continue;
+        }
+
         // Read /proc/<pid>/cmdline for command line
         char cmdline_path[PATH_MAX];
         snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
@@ -406,7 +423,8 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             size_t n = fread(p.cmdline, 1, sizeof(p.cmdline) - 1, fcmd);
             fclose(fcmd);
             for (size_t i = 0; i < n; ++i) {
-                if (p.cmdline[i] == '\0') p.cmdline[i] = ' ';
+                if (p.cmdline[i] == '\0')
+                    p.cmdline[i] = ' ';
             }
             p.cmdline[n] = '\0';
         } else {
@@ -416,14 +434,14 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         // Set variables required for sort mode
         long page_size = sysconf(_SC_PAGESIZE);
         switch (args->sort_mode) {
-            case SWSORT_RAM:
-                p.ram = rss * page_size / (1024 * 1024);  // convert to MB
-                break;
-            case SWSORT_AGE:
-                p.start_time = start_time;
-                break;
-            default:
-                break;
+        case SWSORT_RAM:
+            p.ram = rss * page_size / (1024 * 1024); // convert to MB
+            break;
+        case SWSORT_AGE:
+            p.start_time = start_time;
+            break;
+        default:
+            break;
         }
 
         if (args->user && strcasecmp(p.owner, args->user) != 0)
@@ -486,11 +504,6 @@ static void select_processes(int matched, process_info_t *matches, int *selected
 /* Confirm and act on selected processes. Text is displayed based on mode */
 static void confirm_and_act(const swordfish_args_t *args, int count, int *selected,
                             process_info_t *matches) {
-    // Show warning if any selected process is root
-    if (!args->run_static && has_root_process(count, selected, matches, 0) && is_interactive()) {
-        WARN("At least one selected process is owned by root!");
-    }
-
     if (count == 0)
         return;
 
@@ -504,6 +517,11 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
     if (!args->run_static && !args->auto_confirm && is_interactive()) {
         for (int i = 0; i < count; ++i)
             print_proc_info(&matches[selected[i]], sig, args, "  PID", false);
+
+        // Show warning if any selected process is root
+        if (!args->run_static && has_root_process(count, selected, matches, 0) && is_interactive()) {
+            WARN("At least one selected process is owned by root!");
+        }
 
         if (count == 1)
             printf("The process above will be affected (signal %d - %s)\n", sig, strsignal(sig));
@@ -541,7 +559,7 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
             print_proc_info(&matches[idx], sig, args, strsignal(sig), true);
         } else {
             ERROR("Failed to send signal %d to PID %d (%s): %s", sig, matches[idx].pid,
-                   matches[idx].name, strerror(errno));
+                  matches[idx].name, strerror(errno));
         }
     }
     // Post-kill hook
@@ -561,9 +579,14 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
         // Only sort if there are multiple matches
         if (matched > 1) {
             switch (args->sort_mode) {
-                case SWSORT_RAM: qsort(matches, matched, sizeof(process_info_t), cmp_ram); break;
-                case SWSORT_AGE: qsort(matches, matched, sizeof(process_info_t), cmp_age); break;
-                default: break;
+            case SWSORT_RAM:
+                qsort(matches, matched, sizeof(process_info_t), cmp_ram);
+                break;
+            case SWSORT_AGE:
+                qsort(matches, matched, sizeof(process_info_t), cmp_age);
+                break;
+            default:
+                break;
             }
         }
 

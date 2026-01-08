@@ -2,11 +2,9 @@
 #include "main.h"
 
 #include <errno.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -20,7 +18,6 @@ void safe_strncpy(char *dst, const char *src, size_t size) {
 
     dst[i] = '\0';
 }
-
 
 /* Run a hook command (post/pre) with PID and process name as arguments */
 void run_hook(const char *hook, pid_t pid, const char *name) {

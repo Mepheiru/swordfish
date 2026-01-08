@@ -1,10 +1,13 @@
 #include "main.h"
-#include "args.h"
+#include "help.h"
 #include "process.h"
+
 #include <ctype.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 /* Generate shell completions for fish */
 void generate_fish_completions(const char *prog, const char *file_path) {
@@ -17,15 +20,18 @@ void generate_fish_completions(const char *prog, const char *file_path) {
         }
     }
 
-    extern const swordfish_flag_desc_t swordfish_flags[];
-    extern const size_t swordfish_flags_count;
+    extern const swordfish_option_t swordfish_options[];
+    extern const size_t swordfish_options_count;
 
     fprintf(out, "# Generated for Swordfish %s\n", SWORDFISH_VERSION);
     fprintf(out, "# Sword fish completions (it was too good not to do that)\n\n");
     fprintf(out, "# === Options ===\n");
-    for (size_t i = 0; i < swordfish_flags_count; ++i) {
-        const char *flag = swordfish_flags[i].flag;
-        const char *desc = swordfish_flags[i].desc;
+    for (size_t i = 0; i < swordfish_options_count; ++i) {
+        const char *flag = swordfish_options[i].short_flag ? swordfish_options[i].short_flag
+                                                           : swordfish_options[i].long_flag;
+        const char *desc = swordfish_options[i].desc;
+        if (!flag)
+            continue;
         // Handle short flags (e.g. -k)
         if (flag[0] == '-' && flag[1] && flag[1] != '-') {
             // Extract short flag from ones like -r <time>
@@ -37,20 +43,18 @@ void generate_fish_completions(const char *prog, const char *file_path) {
         } else if (flag[0] == '-' && flag[1] == '-') {
             // Long flag
             const char *longflag = flag + 2;
-            // If flag has space or <arg>, strip
             char longopt[64] = {0};
             size_t j = 0;
-            while (longflag[j] && longflag[j] != ' ' && longflag[j] != '<' && j < sizeof(longopt)-1) {
+            while (longflag[j] && longflag[j] != ' ' && longflag[j] != '<' &&
+                   j < sizeof(longopt) - 1) {
                 longopt[j] = longflag[j];
                 j++;
             }
             longopt[j] = '\0';
             fprintf(out, "complete -c %s -l %s -d \"%s\"\n", prog, longopt, desc);
         } else if (flag[0] == '?') {
-            // Special ?-flags, skip for completions
             continue;
         } else if (flag[0] == '-' && flag[1] == '<') {
-            // Signal shorthand, handle separately
             continue;
         }
     }
@@ -80,8 +84,8 @@ void generate_bash_completions(const char *prog, const char *file_path) {
         }
     }
 
-    extern const swordfish_flag_desc_t swordfish_flags[];
-    extern const size_t swordfish_flags_count;
+    extern const swordfish_option_t swordfish_options[];
+    extern const size_t swordfish_options_count;
 
     fprintf(out, "# Generated for Swordfish %s\n", SWORDFISH_VERSION);
     fprintf(out, "# Bash completion for %s\n\n", prog);
@@ -93,22 +97,12 @@ void generate_bash_completions(const char *prog, const char *file_path) {
 
     fprintf(out, "    # All available options\n    opts=\"\n");
     // Output all short and long options
-    for (size_t i = 0; i < swordfish_flags_count; ++i) {
-        const char *flag = swordfish_flags[i].flag;
-        if (flag[0] == '-' && flag[1] && flag[1] != '-') {
-            // Short flag
-            fprintf(out, "    %s\n", flag);
-        } else if (flag[0] == '-' && flag[1] == '-') {
-            // Long flag
-            char longopt[64] = {0};
-            const char *longflag = flag + 2;
-            size_t j = 0;
-            while (longflag[j] && longflag[j] != ' ' && longflag[j] != '<' && j < sizeof(longopt)-1) {
-                longopt[j] = longflag[j];
-                j++;
-            }
-            longopt[j] = '\0';
-            fprintf(out, "    --%s\n", longopt);
+    for (size_t i = 0; i < swordfish_options_count; ++i) {
+        if (swordfish_options[i].short_flag) {
+            fprintf(out, "    %s\n", swordfish_options[i].short_flag);
+        }
+        if (swordfish_options[i].long_flag) {
+            fprintf(out, "    %s\n", swordfish_options[i].long_flag);
         }
     }
     // Signal shorthand
@@ -123,7 +117,9 @@ void generate_bash_completions(const char *prog, const char *file_path) {
     fprintf(out, "    # Special handling for arguments\n");
     fprintf(out, "    case \"${prev}\" in\n");
     fprintf(out, "        -u)\n");
-    fprintf(out, "            COMPREPLY=( $(compgen -W \"$(cut -d: -f1 /etc/passwd)\" -- \"${cur}\") )\n");
+    fprintf(
+        out,
+        "            COMPREPLY=( $(compgen -W \"$(cut -d: -f1 /etc/passwd)\" -- \"${cur}\") )\n");
     fprintf(out, "            return 0\n");
     fprintf(out, "            ;;\n");
     fprintf(out, "        --sort)\n");
@@ -131,7 +127,9 @@ void generate_bash_completions(const char *prog, const char *file_path) {
     fprintf(out, "            return 0\n");
     fprintf(out, "            ;;\n");
     fprintf(out, "        --exclude)\n");
-    fprintf(out, "            COMPREPLY=( $(compgen -W \"$(ps -eo comm= | sort -u)\" -- \"${cur}\") )\n");
+    fprintf(
+        out,
+        "            COMPREPLY=( $(compgen -W \"$(ps -eo comm= | sort -u)\" -- \"${cur}\") )\n");
     fprintf(out, "            return 0\n");
     fprintf(out, "            ;;\n");
     fprintf(out, "    esac\n\n");
@@ -161,8 +159,8 @@ void generate_zsh_completions(const char *prog, const char *file_path) {
         }
     }
 
-    extern const swordfish_flag_desc_t swordfish_flags[];
-    extern const size_t swordfish_flags_count;
+    extern const swordfish_option_t swordfish_options[];
+    extern const size_t swordfish_options_count;
 
     fprintf(out, "#compdef %s\n\n", prog);
     fprintf(out, "# Generated for Swordfish %s\n", SWORDFISH_VERSION);
@@ -170,15 +168,18 @@ void generate_zsh_completions(const char *prog, const char *file_path) {
     fprintf(out, "    # === Dynamic process completion ===\n");
     fprintf(out, "    _swordfish_procs() {\n");
     fprintf(out, "        local -a procs\n");
-    fprintf(out, "        procs=(\"${(@f)$(ps -eo comm= | tr '[:upper:]' '[:lower:]' | sort -u)}\")\n");
+    fprintf(out,
+            "        procs=(\"${(@f)$(ps -eo comm= | tr '[:upper:]' '[:lower:]' | sort -u)}\")\n");
     fprintf(out, "        compadd -a procs\n");
     fprintf(out, "    }\n\n");
-    fprintf(out, "    # === Options ===\n    _arguments \\\n");
-    for (size_t i = 0; i < swordfish_flags_count; ++i) {
-        const char *flag = swordfish_flags[i].flag;
-        const char *desc = swordfish_flags[i].desc;
+    fprintf(out, "    # === Options ===    _arguments \\\n");
+    for (size_t i = 0; i < swordfish_options_count; ++i) {
+        const char *flag = swordfish_options[i].short_flag ? swordfish_options[i].short_flag
+                                                           : swordfish_options[i].long_flag;
+        const char *desc = swordfish_options[i].desc;
+        if (!flag)
+            continue;
         if (flag[0] == '-' && flag[1] && flag[1] != '-') {
-            // Short flag, handle -r and -u with arguments
             if (flag[1] == 'r') {
                 fprintf(out, "      '-r+[%s]:time (s)' \\\n", desc);
             } else if (flag[1] == 'u') {
@@ -189,7 +190,6 @@ void generate_zsh_completions(const char *prog, const char *file_path) {
                 fprintf(out, "      '%s[%s]' \\\n", flag, desc);
             }
         } else if (flag[0] == '-' && flag[1] == '-') {
-            // Long flag, handle --sort and --exclude
             const char *longflag = flag + 2;
             if (strncmp(longflag, "sort", 4) == 0) {
                 fprintf(out, "      '--sort[%s]:sort:(cpu ram age)' \\\n", desc);
@@ -220,6 +220,11 @@ int main(int arg_count, char **argv) {
     swordfish_args_t args;
     int argc = arg_count;
     int ret = parse_args(&argc, argv, &args);
+    if (args.help_topic != NULL ||
+        (argc > 1 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")))) {
+        help(argv[0], args.help_topic);
+        return 0;
+    }
     if (ret)
         return ret;
 
@@ -237,7 +242,7 @@ int main(int arg_count, char **argv) {
         }
     }
 
-    /* Actually send the warning message for empty string */
+    /* Send warning message for empty string */
     if (has_empty_pattern && !args.auto_confirm && is_interactive()) {
         WARN("Empty pattern specified. \nThis may match all processes and could be " COLOR_WARN
              "dangerous!" COLOR_RESET);

@@ -2,9 +2,10 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 /* Sorting modes for --sort */
-typedef enum { SWSORT_NONE = 0, SWSORT_CPU, SWSORT_RAM, SWSORT_AGE } swordfish_sort_mode_t;
+typedef enum : uint8_t { SWSORT_NONE = 0, SWSORT_CPU, SWSORT_RAM, SWSORT_AGE } swordfish_sort_mode_t;
 
 /* Command-line arguments structure definitions */
 typedef struct {
@@ -14,50 +15,23 @@ typedef struct {
     const char **exclude_patterns;
     char pre_hook[256];
     char post_hook[256];
-    int sig;
-    int exclude_count;
-    int pattern_start_idx;
+    unsigned short int sig;
+    short int exclude_count;
+    short int pattern_start_idx;
+    short int verbose_level;
     int retry_time;
-    int verbose_level;
-    bool do_term;
-    bool do_kill;
-    bool do_sig;
-    bool select_mode;
-    bool exact_match;
-    bool print_pids_only;
-    bool auto_confirm;
-    bool run_static;
-    bool top_only;
+    unsigned int do_term       : 1;
+    unsigned int do_kill       : 1;
+    unsigned int do_sig        : 1;
+    unsigned int select_mode   : 1;
+    unsigned int exact_match   : 1;
+    unsigned int print_pids_only : 1;
+    unsigned int auto_confirm  : 1;
+    unsigned int run_static    : 1;
+    unsigned int top_only      : 1;
+    unsigned int hide_root     : 1;
     swordfish_sort_mode_t sort_mode;
+    const char *help_topic;
 } swordfish_args_t;
 
-typedef struct {
-    const char *flag;
-    const char *desc;
-} swordfish_flag_desc_t;
-
-typedef struct {
-    const char *usage;
-    const char *desc;
-} swordfish_usage_example_t;
-
-typedef struct {
-    const char *name;
-    const char *desc;
-} swordfish_completion_guide_t;
-
-typedef struct {
-    const char *name;
-    int sig;
-} swordfish_signal_t;
-
-extern const swordfish_flag_desc_t swordfish_flags[];
-extern const swordfish_usage_example_t swordfish_examples[];
-extern const swordfish_signal_t signals[];
-extern const size_t swordfish_flags_count;
-extern const size_t swordfish_examples_count;
-extern const size_t signals_count;
-
-void usage(const char *prog);
-void help(const char *prog);
 int parse_args(int *argc, char **argv, swordfish_args_t *args);
