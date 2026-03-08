@@ -1,17 +1,17 @@
-#include "args.h"
-#include "help.h"
-#include "hooks.h"
-#include "main.h"
-#include "process.h"
-
 #include <ctype.h>
 #include <getopt.h>
-#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <stdbool.h>
+#include <unistd.h>
+
+#include "args.h"
+#include "help.h"
+#include "hooks.h"
+#include "main.h"
 
 /* Define NSIG since for some reason it breaks without it*/
 #ifndef NSIG

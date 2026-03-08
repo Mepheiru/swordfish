@@ -1,7 +1,3 @@
-#include "process.h"
-#include "hooks.h"
-#include "main.h"
-
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -9,9 +5,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-
+#include <unistd.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <limits.h>
+#include <strings.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include "process.h"
+#include "hooks.h"
+#include "main.h"
+#include "args.h"
 
 /* Check if a directory name is a valid process directory */
 static bool is_proc_dir(const char *name) {

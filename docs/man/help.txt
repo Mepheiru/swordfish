@@ -3,7 +3,8 @@ Swordfish -- A pkill-like CLI tool
 Usage: swordfish [options] pattern [pattern ...]
 
 Help categories:
-  general    Basic Usage for swordfish
+  arguments  Argument list for swordfish
+  general    Basic usage for swordfish
   signals    How swordfish sends signals
   filter     Which processes are matched
   behavior   Confirmation and execution behavior

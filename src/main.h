@@ -1,4 +1,7 @@
 #pragma once
+
+#include <stdio.h>
+
 #define MAX_MATCHES 1024
 
 #define COLOR_RESET "\033[0m"

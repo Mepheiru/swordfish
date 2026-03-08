@@ -1,10 +1,9 @@
 #pragma once
-#define _GNU_SOURCE
 
-#include "args.h"
 #include <regex.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include "args.h"
 
 typedef struct {
     uid_t uid;
@@ -23,9 +22,9 @@ typedef struct {
     char name[256];
     char owner[64];
     char cmdline[256];
-    double cpu;      // percent
-    long ram;        // kB
-    long start_time; // seconds since boot
+    double cpu;
+    long ram;
+    long start_time;
     proc_status_t status;
 } process_info_t;
 

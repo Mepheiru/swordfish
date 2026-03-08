@@ -1,11 +1,9 @@
 #include "help.h"
-#include "args.h"
 #include "main.h"
 
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 extern const unsigned char _binary_docs_man_help_txt_start[];
@@ -20,6 +18,8 @@ extern const unsigned char _binary_docs_man_behavior_txt_start[];
 extern const unsigned char _binary_docs_man_behavior_txt_end[];
 extern const unsigned char _binary_docs_man_misc_txt_start[];
 extern const unsigned char _binary_docs_man_misc_txt_end[];
+extern const unsigned char _binary_docs_man_args_txt_start[];
+extern const unsigned char _binary_docs_man_args_txt_end[];
 
 static void man_general(FILE *out, bool isman);
 static void man_signals(FILE *out, bool isman);
@@ -27,6 +27,7 @@ static void man_filter(FILE *out, bool isman);
 static void man_behavior(FILE *out, bool isman);
 // static void man_output(FILE *out, bool isman);
 static void man_misc(FILE *out, bool isman);
+static void man_args(FILE *out, bool isman);
 
 const swordfish_option_t swordfish_options[] = {
     {"-S", NULL, NULL, "Select which PIDs to kill (interactive prompt)", true},
@@ -80,6 +81,7 @@ const swordfish_signal_t signals[] = {
 const size_t signals_count = sizeof(signals) / sizeof(signals[0]);
 
 const swordfish_help_category_info_t help_categories[] = {
+    {"arguments", "Argument List", "List of arguments in swordfish"},
     {"general", "General Usage", "Basic Usage for swordfish"},
     {"signals", "Signal Control", "How swordfish sends signals"},
     {"filter", "Filtering", "Which processes are matched"},
@@ -174,6 +176,9 @@ void help(const char *category) {
         } else if (strcmp(category, "misc") == 0) {
             man_misc(stdout, false);
             return;
+        } else if (strcmp(category, "arguments") == 0) {
+            man_args(stdout, false);
+            return;
         } else {
             ERROR("Unknown help category: %s", category);
             return;
@@ -202,7 +207,6 @@ static void man_general(FILE *out, bool isman) {
 
     print_embedded(out, start, end);
 }
-
 
 static void man_signals(FILE *out, bool isman) {
     const unsigned char *start = _binary_docs_man_signals_txt_start;
@@ -272,6 +276,23 @@ static void man_behavior(FILE *out, bool isman) {
 static void man_misc(FILE *out, bool isman) {
     const unsigned char *start = _binary_docs_man_misc_txt_start;
     const unsigned char *end = _binary_docs_man_misc_txt_end;
+
+     if (isman) {
+        int newlines = 0;
+        const unsigned char *p = start;
+        while (p < end && newlines < 2) {
+            if (*p == '\n') newlines++;
+            p++;
+        }
+        start = p; // new start position
+    }
+
+    print_embedded(out, start, end);
+}
+
+static void man_args(FILE *out, bool isman) {
+    const unsigned char *start = _binary_docs_man_args_txt_start;
+    const unsigned char *end = _binary_docs_man_args_txt_end;
 
      if (isman) {
         int newlines = 0;

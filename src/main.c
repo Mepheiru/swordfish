@@ -1,13 +1,14 @@
+#define _GNU_SOURCE
+
+#include <ctype.h>
+#include <string.h>
+#include <stdbool.h>
+#include <stdio.h>
+
 #include "main.h"
 #include "help.h"
 #include "process.h"
-
-#include <ctype.h>
-#include <stdbool.h>
-#include <string.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "args.h"
 
 /* Generate shell completions for fish */
 void generate_fish_completions(const char *prog, const char *file_path) {
@@ -214,6 +215,7 @@ void generate_zsh_completions(const char *prog, const char *file_path) {
         fclose(out);
     }
 }
+
 
 /* Main entry point */
 int main(int arg_count, char **argv) {

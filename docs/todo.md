@@ -17,10 +17,9 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 
 - Config file support for default flags and settings.
 - Improved piping support for safer read-only mode and to help other programs understand the swordfish output.
-- More advabced regex arguments.
+- More advanced regex arguments.
 - Additional scripting hooks.
 - Process tree support.
-- Argument for hiding root processes.
 - Argument for watching processes update live (spying).
 - JSON/CSV export of process lists.
 - Plugin and scripting support.
