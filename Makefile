@@ -12,7 +12,7 @@ CFLAGS_REL ?= -Wall -Wextra -Werror -O3 -std=gnu11
 LDFLAGS ?= 
 
 PREFIX ?= /usr/local
-BINDIR ?= $(PREFIX)/binDoc: Cut
+BINDIR ?= $(PREFIX)/bin
 
 DEV_BUILDDIR = build
 REL_BUILDDIR = build/release

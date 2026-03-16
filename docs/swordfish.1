@@ -1,123 +1,65 @@
-.TH SWORDFISH 1 "$(date +"%Y-%m-%d")" "Swordfish 1.2.2" "User Commands"
+Swordfish — A pkill-like CLI tool
 
-.SH NAME
-swordfish \- A pkill-like CLI tool
+Usage: swordfish [options] pattern...
 
-.SH SYNOPSIS
-
- swordfish [-S] [-k] [-K] [-x] [-y] [-p] [-t] [-v] [-h] [-r <time>] [-R] [--sort <ram|age>] [--exclude <pattern>] [--pre-hook <script>] [--post-hook <script>] [--completions <shell> [file]] [--man [file]] [--version] [-u <USER>] pattern...
-
-.SH GENERAL OPTIONS
-All flags (-<opt>) can be grouped together. For example: "-K -S" can be turned into: "-KS".
-Bellow are some of the commonly used options used to control how swordfish interacts with and finds procceses.
+General Options
 
   -h, --help             Show help message
   -v                     Increase verbosity level up to -vvv for maximum verbosity
-  -k                     Send SIGTERM to matching processes (Graceful shutdown)
-  -y                     Auto-confirm kills; skip prompts and sudo confirmation
+  -S                     Select which PIDs to kill (interactive prompt)
 
-Using swordfish without any arguments, but supplying a pattern can be used to search for processes and get info on them. Swordfish will only send signals to a proccess when the user requests it.
-By default, swordfish will ask for confirmation from the user. However, the argument "-y" can be used to skip the confirmation and execute imidietly.
-.SH SIGNAL CONTROL
-Swordfish gives the user extensive control over the signals sent to procceses. Bellow are some arguments that effect how swordfish sends signals.
+Signal Control
 
   -k                     Send SIGTERM to matching processes (Graceful shutdown)
   -K                     Send SIGKILL to matching processes (Forceful shutdown)
 
-The signals "-k" and "-K" act as soft and hard kill respectivly.
-Signals other then KILL/TERM can be sent by using "-<sig>". For example: "-10" would send USR1 to the procces.
-As stated in General Operation, flags can be grouped together. If "-k" and "-K" where grouped together (-kK) the arugment parser will use the last argument (K). 
-.SH FILTERING
-The process list can have filters placed on it to help narrow down the list or give more information on specified processes. Bellow are some of the arguments that effect filtering or information shown.
+Filtering
 
   -x                     Exact match process names (default: substring match)
   -u <USER>              Filter processes by username
-  -R                     Hide processes that are owned by root
   --exclude <pattern>    Exclude processes matching pattern
   --sort <ram|age>       Sort process list by RAM or age
 
-When sorting the process list, the alies "?<ram|age>" can also be used instead of the long-opt version. For example: 
-
-  ?<ram|age>             Alies for "--sort"
-  ?ram                   Will sort the process list by highest to lowest ram usage
-
-The defualt filtering/sorting mode for swordfish is the same as the order in "/proc". Ussaly this will display as lowest to highest PID number.
-.SH BEHAVIOR
-As mentioned in [general], Swordfish when supplied just patterns (no args) will enter "Static Mode". In this mode, Swordfish will not send signals to any processes. This can be useful when you just want to know if a process is running, or get basic information on it (e.g, ?<ram|age>).If you prefer more information, the "-v" flag can be used.
-
-  -v                     Increase verbosity level up to -vvv for maximum verbosity
-
-With the "-v" flag, you can increase it's verbosity to a maximum of 3 with "-vvv". Each level of verbosity will provide more and more information on the process list. Bellow are the templates for each verbosity level.
-
-  0 (Default)
-	PID "<process>" owned by <user>
-  1 (-v)
-	PID "<process>" cmdl: "<cmd_args>" threads: "<thread_c>" owned by <user>
-  2 (-vv)
-	[<state>] PID "<process>" cmdl: "<cmd_args>" threads: "<thread_c" owned by <user>
-  3 (-vvv)
-	[<state>] PID "<process>" cmdl "<cmd_args>" threads: "<thread_c" owned by <user>
-		RAM: "<ram_c> MB" AGE: "<age> min"
-
-There are also flags that effect how Swordfish handles the processes in the list. Bellow is a list of said flags.
+Behavior
 
   -y                     Auto-confirm kills; skip prompts and sudo confirmation
   -t                     Always select the top process
   -r <time>              Retry on failure after waiting <time> seconds
 
-Swordfish has a handful of scripting hooks as well. For example, lets say you wanted to send a notification after a signal is sent. You can do this by using "--post-hook <script>" which activates after (post) kill. 
+Output
+
+  -p                     Print raw PIDs only
+
+Miscellaneous
 
   --pre-hook <script>    Run <script> before sending signals
   --post-hook <script>   Run <script> after sending signals
-
-More hooks are planned to be added in the future.
-.SH MISCELLANEOUS
-Shell completions for bash, zsh, and fish are all supported officaly. You can generate the completions using "--completions <shell>". By default it will output to stdout, however an output file can be suplied.
-
-  --completions <shell> [file] Generate shell completions for <shell> (fish, bash, zsh) and output to file if provided
-
-You can view your version of Swordfish via the "--version" flag. Fun fact: the version flag was added in v1.2.2!
- 
+  --completions <shell>  Generate shell completions for <shell> (fish, bash, zsh) and output to file if provided
   --version              Shows the current version of your Swordfish install. That's it.
 
-Man pages can be manually generated and outputed to a file if required. By default, the make script will update swordfish.1 in docs/ on every build. The man pages are generated dynamicly by putting together all help pages into one file and formatting it.
+Examples
 
-  --man [file]           Generates the man page for swordfish and output to file if provided
-.SH EXAMPLES
-.TP
--k firefox
-Kill all processes with 'firefox' in the name
-.TP
--kx bash
-Kill all exact matches of 'bash'
-.TP
--Sk KILL vim
-Interactively select vim processes and send SIGKILL
-.TP
--ky firefox vim bash
-Kill all 'firefox', 'vim', and 'bash' processes without confirmation
-.TP
--kyr 1 firefox
-Recursively kill 'firefox' every 1 second
-.TP
---pre-hook script1.sh nvim
-Run 'script1.sh' before killing Neovim
-.SH SIGNALS
-.TP
-HUP : Signal number 1
-.TP
-INT : Signal number 2
-.TP
-QUIT : Signal number 3
-.TP
-KILL : Signal number 9
-.TP
-TERM : Signal number 15
-.TP
-USR1 : Signal number 10
-.TP
-USR2 : Signal number 12
-.TP
-STOP : Signal number 19
-.TP
-CONT : Signal number 18
+  %s -k firefox
+    Kill all processes with 'firefox' in the name
+  %s -kx bash
+    Kill all exact matches of 'bash'
+  %s -Sk KILL vim
+    Interactively select vim processes and send SIGKILL
+  %s -ky firefox vim bash
+    Kill all 'firefox', 'vim', and 'bash' processes without confirmation
+  %s -kyr 1 firefox
+    Recursively kill 'firefox' every 1 second
+  %s --pre-hook script1.sh nvim
+    Run 'script1.sh' before killing Neovim
+
+Signals
+
+  HUP   : Signal number 1
+  INT   : Signal number 2
+  QUIT  : Signal number 3
+  KILL  : Signal number 9
+  TERM  : Signal number 15
+  USR1  : Signal number 10
+  USR2  : Signal number 12
+  STOP  : Signal number 19
+  CONT  : Signal number 18

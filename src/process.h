@@ -8,7 +8,7 @@
 typedef struct {
     uid_t uid;
     char state;
-    char threads[32];
+    char threads[322];
 } proc_status_t;
 
 typedef struct {

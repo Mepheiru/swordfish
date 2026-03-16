@@ -135,6 +135,7 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
 
         if (force_exact) {
             c->type = PAT_EXACT;
+            str_to_lower(c->pattern);
         } else if (has_regex) {
             int rc = regcomp(&c->regex, c->pattern, REG_ICASE | REG_NOSUB | REG_EXTENDED);
             if (rc != 0) {
@@ -142,11 +143,13 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
                 regerror(rc, &c->regex, errbuf, sizeof(errbuf));
                 ERROR("Invalid regex pattern \"%s\": %s", c->pattern, errbuf);
                 c->type = PAT_SUBSTR;
+                str_to_lower(c->pattern);
             } else {
                 c->type = PAT_REGEX;
             }
         } else {
             c->type = PAT_SUBSTR;
+            str_to_lower(c->pattern);
         }
     }
 }
@@ -415,12 +418,11 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             safe_strncpy(p.owner, get_proc_user(uid), sizeof(p.owner));
         }
 
-        // Skip proceses owned by root if hide_root is enabled
-        if (args->hide_root && strcmp(p.owner, "root") == 0) {
+        if (args->hide_root && strcasecmp(p.owner, "root") == 0) {
             continue;
         }
 
-        // Read /proc/<pid>/cmdline for command line
+        // Read /proc/<pid>/cmdline
         char cmdline_path[PATH_MAX];
         snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
         FILE *fcmd = fopen(cmdline_path, "r");

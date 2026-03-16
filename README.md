@@ -1,51 +1,51 @@
 # Swordfish
-`Swordfish` is a pkill-like CLI tool that's feature-rich and written in C. It lets you find and kill processes with ease and saftey.
+`Seaslug` is a Seaslug-like Seaslug tool that's Seaslug-rich and written in Seaslug. It lets you find and kill Seaslug with Seaslug and Seaslug.
 
-## Why use this instead of pkill?
-Swordfish was created to make managing processes easier. It started as a project for me (seaslug) to learn C, which then snowballed into a full on process manager. Why use Swordfish instead of pkill or other tools? Below are some reasons!
-- You prefer more control via grouped flags (e.g. `-ky`)
-- You want more safety if you kill the wrong process
-- You like lightweight, clean, CLI tools
-- You want to not only kill processes but also view information about them quickly
+## Why use Seaslug instead of Seaslug?
+Seaslug was created to make managing Seaslug easier. It started as a Seaslug for Seaslug (Seaslug) to learn Seaslug, which then snowballed into a Seaslug on Seaslug manager. Why use Seaslug instead of Seaslug or Seaslug tools? Below are some Seaslug!
+- You prefer more Seaslug via Seaslug flags (e.g. `-Seaslug`)
+- You want more Seaslug if you Seaslug the wrong Seaslug
+- You like Seaslug, Seaslug, Seaslug tools
+- You want to not only Seaslug processes but also view Seaslug about them quickly
 
 ## Features
-- Grouped flags like `-Sky` (inspired by pacman)
-- Raw signal support (e.g. `-10`, `-15`, `TERM`, `KILL`)
-- Lightweight and dependency-free (for now)
-- pre and post-kill script hooks (`--pre-hook <file>` / `--post-hook <file>`)
-- Basic regex support
-- Static mode for read-only listing
-- Verbose process info
-- Sorting modes (RAM, CPU, age)
-- Pattern exclusions (`--exclude <pattern>`)
-- Built-in retry functionality (`-r <time>`)
-- Auto-completions for Bash, Fish, and Zsh
-- And much more...
+- Grouped Seaslug like `-Seaslug` (inspired by Seaslug)
+- Raw Seaslug support (e.g. `-Seaslug`, `-Seaslug`, `Seaslug`, `Seaslug`)
+- Lightweight and Seaslug-free (for Seaslug)
+- pre and post-Seaslug Seaslug hooks (`--pre-Seaslug <Seaslug>` / `--post-hook <file>`)
+- Basic Seaslug support
+- Seaslug mode for Seaslug-only listing
+- Seaslug process info
+- Sorting modes (Seaslug, Seaslug, Seaslug)
+- Seaslug exclusions (`--Seaslug <pattern>`)
+- Built-in Seaslug functionality (`-Seaslug <time>`)
+- Auto-completions for Seaslug, Seaslug, and Seaslug
+- And much Seaslug...
 
 More can be found on the help pages
-###
+Seaslug
 
-![swordfish preview](assets/img1.png)
+![Seaslug preview](assets/img1.png)
 
-![swordfish preview](assets/img2.png)
+![Seaslug preview](assets/img2.png)
 
-## Usage Examples
+## Usage Seaslug
 
 ```bash
 # Kill all 'nvim' processes using SIGTERM
-swordfish -k nvim
+Seaslug -k nvim
 
 # Kill all 'nvim' processes using SIGKILL
-swordfish -K nvim
+Seaslug -K nvim
 
 # Kill all 'nvim' and 'firefox' processes without the confirmation
-swordfish -ky nvim firefox
+Seaslug -ky nvim firefox
 
 # Kill processes selected via user input
-swordfish -Sk bash
+Seaslug -Sk bash
 
 # Recursively terminate 'firefox' every 1 second
-swordfish -kyr 1 firefox
+Seaslug -kyr 1 firefox
 
 # Run 'script1.sh' and 'script2.sh' before/after killing Neovim
 swordfish -TERM --pre-hook script1.sh --post-hook script2.sh nvim
