@@ -1,30 +1,39 @@
-Behavior -- Confirmation and execution behavior -- Compiled for v1.2.2 
+Behavior -- Confirmation and Execution -- Compiled for v1.2.5
 
-As mentioned in [general], Swordfish when supplied just patterns (no args) will enter "Static Mode". In this mode, Swordfish will not send signals to any processes. This can be useful when you just want to know if a process is running, or get basic information on it (e.g, ?<ram|age>).If you prefer more information, the "-v" flag can be used.
+When Swordfish matches processes, it shows them and asks for confirmation before
+sending any signals. The flags below change how that works.
 
-  -v                     Increase verbosity level up to -vvv for maximum verbosity
+  -y                     Auto-confirm; skip the confirmation prompt
+  -S                     Interactive selection — choose which matched processes to act on
+  -t                     Always act on only the top (first) matched process
+  -r <time>              Retry every <time> seconds if no processes are matched
 
-With the "-v" flag, you can increase it's verbosity to a maximum of 3 with "-vvv". Each level of verbosity will provide more and more information on the process list. Bellow are the templates for each verbosity level.
+Static Mode:
+Running Swordfish with just a pattern and no signal flag (no -k, -K, etc.) enters
+Static Mode. No signals are sent and just lists matching processes. Good for
+checking what's running before committing to a kill.
 
-  0 (Default)
-	PID "<process>" owned by <user>
+Verbosity:
+The "-v" flag increases how much info is shown per process. Stack up to three:
+
+  0 (default)
+    PID "<process>" owned by <user>
+
   1 (-v)
-	PID "<process>" cmdl: "<cmd_args>" threads: "<thread_c>" owned by <user>
+    PID "<process>" cmdl: "<args>" threads: "<n>" owned by <user>
+
   2 (-vv)
-	[<state>] PID "<process>" cmdl: "<cmd_args>" threads: "<thread_c" owned by <user>
+    [<state>] PID "<process>" cmdl: "<args>" threads: "<n>" owned by <user>
+
   3 (-vvv)
-	[<state>] PID "<process>" cmdl "<cmd_args>" threads: "<thread_c" owned by <user>
-		RAM: "<ram_c> MB" AGE: "<age> min"
+    [<state>] PID "<process>" cmdl: "<args>" threads: "<n>" owned by <user>
+        RAM: "<n> MB" AGE: "<n> min"
 
-There are also flags that effect how Swordfish handles the processes in the list. Bellow is a list of said flags.
-
-  -y                     Auto-confirm kills; skip prompts and sudo confirmation
-  -t                     Always select the top process
-  -r <time>              Retry on failure after waiting <time> seconds
-
-Swordfish has a handful of scripting hooks as well. For example, lets say you wanted to send a notification after a signal is sent. You can do this by using "--post-hook <script>" which activates after (post) kill. 
+Hooks:
+Script hooks let you run a file before or after signals are sent. Useful for
+notifications, logging, or anything else you want to automate around a kill.
 
   --pre-hook <script>    Run <script> before sending signals
   --post-hook <script>   Run <script> after sending signals
 
-More hooks are planned to be added in the future.
+The script receives the PID and process name as arguments.

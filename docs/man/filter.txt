@@ -1,16 +1,22 @@
-Filtering -- Which processes are matched -- Compiled for v1.2.2
+Filtering -- Which Processes Are Matched -- Compiled for v1.2.5
 
-The process list can have filters placed on it to help narrow down the list or give more information on specified processes. Bellow are some of the arguments that effect filtering or information shown.
+By default, Swordfish does a case-insensitive substring match against process names
+and command line arguments. The flags below let you narrow down or change how matching works.
 
-  -x                     Exact match process names (default: substring match)
-  -u <USER>              Filter processes by username
-  -R                     Hide processes that are owned by root
-  --exclude <pattern>    Exclude processes matching pattern
-  --sort <ram|age>       Sort process list by RAM or age
+  -x                     Exact match only (default: substring match)
+  -u <USER>              Only show processes owned by <USER>
+  -R                     Hide processes owned by root
+  --exclude <pattern>    Exclude processes matching <pattern> from results
 
-When sorting the process list, the alies "?<ram|age>" can also be used instead of the long-opt version. For example: 
+Patterns support basic regex. If your pattern looks like a regex (contains ^, $, *, etc.)
+Swordfish will compile and use it automatically. Wrap a pattern in ^<pattern>$ to force
+an exact match via regex, or just use "-x" for simple exact matching.
 
-  ?<ram|age>             Alies for "--sort"
-  ?ram                   Will sort the process list by highest to lowest ram usage
+Sorting:
 
-The defualt filtering/sorting mode for swordfish is the same as the order in "/proc". Ussaly this will display as lowest to highest PID number.
+  --sort <ram|age>       Sort the process list by RAM usage or age
+  ?ram                   Shorthand alias for --sort ram
+  ?age                   Shorthand alias for --sort age
+
+The default sort order matches the order entries appear in /proc, which is generally
+lowest to highest PID.

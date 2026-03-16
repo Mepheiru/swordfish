@@ -3,11 +3,11 @@ Swordfish -- A pkill-like CLI tool
 Usage: swordfish [options] pattern [pattern ...]
 
 Help categories:
-  arguments  Argument list for swordfish
-  general    Basic usage for swordfish
-  signals    How swordfish sends signals
-  filter     Which processes are matched
-  behavior   Confirmation and execution behavior
-  misc       Miscellaneous features
+  general    Basic usage and common flags
+  signals    How Swordfish sends signals
+  filter     How processes are matched and sorted
+  behavior   Confirmation, verbosity, and execution behavior
+  misc       Completions, versioning, and man pages
+  arguments  Full argument reference
 
-Run 'swordfish --help <category>' for more.
+Run 'swordfish --help <category>' for details.

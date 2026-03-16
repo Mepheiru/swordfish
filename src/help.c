@@ -13,6 +13,7 @@ static void man_filter(FILE *out);
 static void man_behavior(FILE *out);
 static void man_output(FILE *out);
 static void man_misc(FILE *out);
+static void man_perf(FILE *out);
 
 const swordfish_option_t swordfish_options[] = {
     {"-S", NULL, NULL, "Select which PIDs to kill (interactive prompt)", true},
@@ -67,6 +68,7 @@ const swordfish_help_category_info_t help_categories[] = {
     {"behavior", "Behavior",         "Confirmation and execution behavior"},
     {"output",   "Output",           "Output and verbosity control"},
     {"misc",     "Miscellaneous",    "Less commonly used options"},
+    {"perf",     "Performance",      "Story about Swordfish's optimizations"},
 };
 const size_t help_category_count =
     sizeof(help_categories) / sizeof(help_categories[0]);
@@ -169,6 +171,7 @@ void help(const char *prog, const char *category) {
         if (strcmp(category, "behavior") == 0) { man_behavior(stdout); return; }
         if (strcmp(category, "output") == 0) { man_output(stdout); return; }
         if (strcmp(category, "misc") == 0) { man_misc(stdout); return; }
+        if (strcmp(category, "perf") == 0) { man_perf(stdout); return; }
         // Not found
         printf("Unknown help category: %s\n", category);
         printf("Available categories:\n");
@@ -261,6 +264,20 @@ static void man_misc(FILE *out) {
     for (size_t i = 0; i < option_category_map_count; ++i) {
         const swordfish_option_map_t *map = &option_category_map[i];
         if (strcmp(map->category, "misc") != 0) continue;
+        const swordfish_option_t *opt = find_option(map->short_flag, map->long_flag);
+        if (!opt) continue;
+        char buf[64];
+        format_option(buf, sizeof(buf), opt);
+        fprintf(out, "  %-22s %s\n", buf, opt->desc);
+    }
+    fprintf(out, "\n");
+}
+
+static void man_perf(FILE *out) {
+    fprintf(out, "Performance\n\n");
+    for (size_t i = 0; i < option_category_map_count; ++i) {
+        const swordfish_option_map_t *map = &option_category_map[i];
+        if (strcmp(map->category, "perf") != 0) continue;
         const swordfish_option_t *opt = find_option(map->short_flag, map->long_flag);
         if (!opt) continue;
         char buf[64];

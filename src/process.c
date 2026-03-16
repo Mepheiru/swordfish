@@ -12,6 +12,7 @@
 #include <strings.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "process.h"
 #include "hooks.h"
@@ -60,8 +61,28 @@ bool is_zombie_process(pid_t pid) {
 }
 
 static const char *get_proc_user(uid_t uid) {
+    static struct {
+        uid_t uid;
+        char name[64];
+        int set;
+    } uidCache[64];
+    static int count = 0;
+
+    for (int i = 0; i < count; i++)
+        if (uidCache[i].uid == uid)
+        return uidCache[i].name;
+       
     struct passwd *pw = getpwuid(uid);
-    return pw ? pw->pw_name : "unknown";
+    const char *name = pw ? pw->pw_name : "unknown";
+
+    if (count < 64) {
+        uidCache[count].uid = uid;
+        strncpy(uidCache[count].name, name, 63);
+        uidCache[count].name[63] = '\0';
+        count++;
+    }
+
+    return uidCache[count - 1].name;
 }
 
 static void str_to_lower(char *s) {
@@ -326,6 +347,7 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
     int matched = 0;
     struct dirent *entry;
     pid_t self_pid = getpid();
+    long page_size = sysconf(_SC_PAGESIZE);
 
     while ((entry = readdir(proc))) {
         if (!is_proc_dir(entry->d_name))
@@ -338,25 +360,18 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         process_info_t p = {0};
         p.pid = pid;
 
-        // Read /proc/<pid>/stat and UID (/proc/<pid>/status)
-        char stat_path[PATH_MAX], status_path[PATH_MAX];
-        snprintf(stat_path, sizeof(stat_path), "/proc/%d/stat", pid);
-        snprintf(status_path, sizeof(status_path), "/proc/%d/status", pid);
+        char path[64];
+        int base_len = snprintf(path, sizeof(path), "/proc/%d/", pid);
 
-        FILE *fstat = fopen(stat_path, "r");
-        if (!fstat)
-            continue;
-
+        memcpy(path + base_len, "stat", 5);
+        int statfd = open(path, O_RDONLY);
+        if (statfd < 0) continue;
         char stat_line[1024];
-        if (!fgets(stat_line, sizeof(stat_line), fstat)) {
-            fclose(fstat);
-            continue;
-        }
-        fclose(fstat);
+        ssize_t n = read(statfd, stat_line, sizeof(stat_line) - 1);
+        close(statfd);
+        if (n <= 0) continue;
+        stat_line[n] = '\0';
 
-        // Parse stat_line: pid (comm) state ...
-        // Find first '(' and last ')'
-        // Truly genius
         char *lparen = strchr(stat_line, '(');
         char *rparen = strrchr(stat_line, ')');
         if (!lparen || !rparen || lparen > rparen)
@@ -365,41 +380,33 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         if (comm_len >= sizeof(p.name))
             comm_len = sizeof(p.name) - 1;
 
-        // We plus 1 to lparen and comm_len to not truncate the end or start of the process name
         safe_strncpy(p.name, lparen + 1, comm_len + 1);
         p.name[comm_len] = '\0';
 
-        // Get state (char after rparen + space)
         char *after_rparen = rparen + 2;
-        char state = *after_rparen;
+        p.status.state = *after_rparen;
 
-        p.status.state = state;
-
-        // Tokenize after state
         char *fields = after_rparen + 2;
-        int field_index = 3; // pid, comm, state already parsed
+        int field_index = 3;
         char *tok = strtok(fields, " ");
 
-        // Create our variables
         long num_threads = 0;
         unsigned long long start_time = 0;
         long rss = 0;
         int found_threads = 0, found_start = 0, found_rss = 0;
 
         while (tok) {
-            // The field index is -1 from normal documentation. 19 = 20
-            if (field_index == 19) { // num_threads
+            if (field_index == 19) {
                 num_threads = atol(tok);
                 found_threads = 1;
-            } else if (field_index == 21) { // start_time
+            } else if (field_index == 21) {
                 start_time = strtoull(tok, NULL, 10);
                 found_start = 1;
-            } else if (field_index == 23) { // rss
+            } else if (field_index == 23) {
                 rss = atol(tok);
                 found_rss = 1;
-                break; // we get outa here
+                break;
             }
-
             tok = strtok(NULL, " ");
             field_index++;
         }
@@ -409,40 +416,37 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
 
         snprintf(p.status.threads, sizeof(p.status.threads), "%ld", num_threads);
 
-        // Get proc owner
         struct stat st;
-        char procpath[64];
-        snprintf(procpath, sizeof(procpath), "/proc/%d", pid);
-        if (stat(procpath, &st) == 0) {
-            uid_t uid = st.st_uid;
-            safe_strncpy(p.owner, get_proc_user(uid), sizeof(p.owner));
-        }
+        path[base_len - 1] = '\0';
+        if (stat(path, &st) == 0)
+            safe_strncpy(p.owner, get_proc_user(st.st_uid), sizeof(p.owner));
+        path[base_len - 1] = '/';
 
-        if (args->hide_root && strcasecmp(p.owner, "root") == 0) {
+        if (args->hide_root && strcasecmp(p.owner, "root") == 0)
             continue;
-        }
 
-        // Read /proc/<pid>/cmdline
-        char cmdline_path[PATH_MAX];
-        snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
-        FILE *fcmd = fopen(cmdline_path, "r");
-        if (fcmd) {
-            size_t n = fread(p.cmdline, 1, sizeof(p.cmdline) - 1, fcmd);
-            fclose(fcmd);
-            for (size_t i = 0; i < n; ++i) {
-                if (p.cmdline[i] == '\0')
-                    p.cmdline[i] = ' ';
+        if (args->user && strcasecmp(p.owner, args->user) != 0)
+            continue;
+
+        p.cmdline[0] = '\0';
+        if (!entry_matches(&p, plist, args, compiled)) {
+            memcpy(path + base_len, "cmdline", 8);
+            FILE *fcmd = fopen(path, "r");
+            if (fcmd) {
+                size_t n = fread(p.cmdline, 1, sizeof(p.cmdline) - 1, fcmd);
+                fclose(fcmd);
+                for (size_t i = 0; i < n; ++i)
+                    if (p.cmdline[i] == '\0')
+                        p.cmdline[i] = ' ';
+                p.cmdline[n] = '\0';
             }
-            p.cmdline[n] = '\0';
-        } else {
-            p.cmdline[0] = '\0';
+            if (!entry_matches(&p, plist, args, compiled))
+                continue;
         }
 
-        // Set variables required for sort mode
-        long page_size = sysconf(_SC_PAGESIZE);
         switch (args->sort_mode) {
         case SWSORT_RAM:
-            p.ram = rss * page_size / (1024 * 1024); // convert to MB
+            p.ram = rss * page_size / (1024 * 1024);
             break;
         case SWSORT_AGE:
             p.start_time = start_time;
@@ -450,11 +454,6 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         default:
             break;
         }
-
-        if (args->user && strcasecmp(p.owner, args->user) != 0)
-            continue;
-        if (!entry_matches(&p, plist, args, compiled))
-            continue;
 
         if (matched < MAX_MATCHES)
             matches[matched++] = p;

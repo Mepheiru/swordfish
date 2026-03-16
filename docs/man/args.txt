@@ -1,1 +1,37 @@
-test
+Arguments -- Full Argument Reference -- Compiled for v1.2.5
+
+Signal Flags:
+  -k                     Send SIGTERM to matching processes (graceful shutdown)
+  -K                     Send SIGKILL to matching processes (forceful shutdown)
+  -<sig>                 Send a specific signal by number or name (e.g. -9, -HUP, -TERM)
+
+Selection & Confirmation:
+  -S                     Interactive process selection before acting
+  -y                     Auto-confirm; skip all prompts
+  -t                     Always act on only the top matched process
+
+Filtering:
+  -x                     Exact match process names (default: substring match)
+  -u <USER>              Filter processes by username
+  -R                     Hide processes owned by root
+  --exclude <pattern>    Exclude processes matching <pattern>
+  --sort <ram|age>       Sort process list by RAM usage or age
+  ?ram                   Shorthand alias for --sort ram
+  ?age                   Shorthand alias for --sort age
+
+Output:
+  -v                     Increase verbosity (up to -vvv)
+  -p                     Print raw PIDs only
+
+Behavior:
+  -r <time>              Retry every <time> seconds if no match is found
+
+Hooks:
+  --pre-hook <script>    Run <script> before sending signals
+  --post-hook <script>   Run <script> after sending signals
+
+Misc:
+  --completions <shell> [file]   Generate shell completions (fish, bash, zsh)
+  --man [file]           Generate man page, optionally writing to <file>
+  --version              Show installed version
+  -h, --help [category]  Show help, optionally for a specific category

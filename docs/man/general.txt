@@ -1,12 +1,21 @@
-General Options -- Basic Usage for Swordfish -- Compiled for version v1.2.2
+General Options -- Basic Usage for Swordfish -- Compiled for v1.2.5
 
-All flags (-<opt>) can be grouped together. For example: "-K -S" can be turned into: "-KS".
-Bellow are some of the commonly used options used to control how swordfish interacts with and finds procceses.
+All flags can be grouped together. For example: "-K -S" can be written as "-KS".
+Below are the commonly used options for controlling how Swordfish finds and interacts with processes.
 
   -h, --help             Show help message
   -v                     Increase verbosity level up to -vvv for maximum verbosity
-  -k                     Send SIGTERM to matching processes (Graceful shutdown)
-  -y                     Auto-confirm kills; skip prompts and sudo confirmation
+  -k                     Send SIGTERM to matching processes (graceful shutdown)
+  -K                     Send SIGKILL to matching processes (forceful shutdown)
+  -S                     Select which processes to act on (interactive prompt)
+  -y                     Auto-confirm; skip prompts and confirmation
+  -p                     Print raw PIDs only
 
-Using swordfish without any arguments, but supplying a pattern can be used to search for processes and get info on them. Swordfish will only send signals to a proccess when the user requests it.
-By default, swordfish will ask for confirmation from the user. However, the argument "-y" can be used to skip the confirmation and execute imidietly.
+Supplying a pattern without any signal flags will enter "Static Mode" where Swordfish will
+find and display matching processes without sending any signals. Useful for checking
+if something is running before you decide to kill it.
+
+By default, Swordfish asks for confirmation before sending signals. Use "-y" to skip
+this and execute immediately.
+
+Run 'swordfish --help <category>' for more detail on a specific topic.

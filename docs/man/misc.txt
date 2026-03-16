@@ -1,13 +1,22 @@
-Miscellaneous -- temp desc -- Compiled for v1.2.2 
+Miscellaneous -- Compiled for v1.2.5
 
-Shell completions for bash, zsh, and fish are all supported officaly. You can generate the completions using "--completions <shell>". By default it will output to stdout, however an output file can be suplied.
+Shell Completions:
+Swordfish officially supports completions for Bash, Zsh, and Fish. Generate them
+with "--completions <shell>". Output goes to stdout by default, or to a file if provided.
 
-  --completions <shell> [file] Generate shell completions for <shell> (fish, bash, zsh) and output to file if provided
+  --completions <shell> [file]   Generate completions for fish, bash, or zsh
 
-You can view your version of Swordfish via the "--version" flag. Fun fact: the version flag was added in v1.2.2!
- 
-  --version              Shows the current version of your Swordfish install. That's it.
+Examples:
+  swordfish --completions fish                  Print fish completions to stdout
+  swordfish --completions bash ~/.bash_complete Write bash completions to a file
 
-Man pages can be manually generated and outputed to a file if required. By default, the make script will update swordfish.1 in docs/ on every build. The man pages are generated dynamicly by putting together all help pages into one file and formatting it.
+Version:
+  --version              Show the current installed version of Swordfish
 
-  --man [file]           Generates the man page for swordfish and output to file if provided
+Man Pages:
+Man pages are generated automatically on every build and written to docs/swordfish.1.
+You can also generate them manually and write to a custom path:
+
+  --man [file]           Generate the man page, optionally writing to <file>
+
+The man page is built dynamically from all help pages combined and formatted.

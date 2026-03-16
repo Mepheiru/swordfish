@@ -219,10 +219,11 @@ void generate_zsh_completions(const char *prog, const char *file_path) {
 
 /* Main entry point */
 int main(int arg_count, char **argv) {
-    swordfish_args_t args;
+    swordfish_args_t args = {0};
     int argc = arg_count;
     int ret = parse_args(&argc, argv, &args);
-    if (args.help_topic != NULL ||
+
+        if (args.help_topic != NULL ||
         (argc > 1 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")))) {
         help(argv[0], args.help_topic);
         return 0;
