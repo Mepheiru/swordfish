@@ -9,7 +9,7 @@
 #define COLOR_WARN "\033[1;93m"
 
 /* INCREMENT ON RELEASE BUILD*/
-#define SWORDFISH_VERSION "1.2.2"
+#define SWORDFISH_VERSION "1.2.4"
 /* INCREMENT ON RELEASE BUILD*/
 
 #define WARN(msg, ...) \

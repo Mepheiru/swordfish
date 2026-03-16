@@ -93,7 +93,7 @@ $(REL_BUILDDIR)/swordfish: $(OBJ_REL) $(DOC_OBJ_REL)
 	@echo "Release build complete. Binary located in $(REL_BUILDDIR)/"
 
 
-install: dev
+install: rel
 	install -Dm755 $(DEV_BUILDDIR)/swordfish $(DESTDIR)$(BINDIR)/swordfish
 
 

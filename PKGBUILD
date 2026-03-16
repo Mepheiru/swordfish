@@ -1,5 +1,5 @@
 pkgname=swordfish-git
-pkgver=r50.d01bbe3
+pkgver=r51.42acca7
 pkgrel=1
 pkgdesc="A pkill-like CLI tool with more control over process management."
 arch=('x86_64')
@@ -18,7 +18,7 @@ pkgver() {
 }
 build() {
     cd "$srcdir/swordfish"
-    make
+    make rel
 }
 package() {
     cd "$srcdir/swordfish"
