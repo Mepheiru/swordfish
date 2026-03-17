@@ -80,9 +80,11 @@ static const char *get_proc_user(uid_t uid) {
         strncpy(uidCache[count].name, name, 63);
         uidCache[count].name[63] = '\0';
         count++;
+        return uidCache[count - 1].name;
     }
 
-    return uidCache[count - 1].name;
+    /* cache full — return the looked-up name directly */
+    return name;
 }
 
 static void str_to_lower(char *s) {
@@ -386,9 +388,10 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         char *after_rparen = rparen + 2;
         p.status.state = *after_rparen;
 
-        char *fields = after_rparen + 2;
+        /* Manual pointer walk — avoids strtok which is not re-entrant and
+           would corrupt state if anything else in the call stack uses it. */
+        char *cursor = after_rparen + 2;
         int field_index = 3;
-        char *tok = strtok(fields, " ");
 
         long num_threads = 0;
         unsigned long long start_time = 0;
@@ -397,23 +400,27 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         int session = 0;
         int found_threads = 0, found_start = 0, found_rss = 0;
 
-        while (tok) {
-            if (field_index == 3) {
-                ppid = (pid_t)atoi(tok);
-            } else if (field_index == 5) {
-                session = atoi(tok);
-            } else if (field_index == 19) {
-                num_threads = atol(tok);
-                found_threads = 1;
-            } else if (field_index == 21) {
-                start_time = strtoull(tok, NULL, 10);
-                found_start = 1;
-            } else if (field_index == 23) {
-                rss = atol(tok);
-                found_rss = 1;
-                break;
+        while (*cursor) {
+            /* skip leading spaces */
+            while (*cursor == ' ') cursor++;
+            if (!*cursor) break;
+
+            /* find end of this token */
+            char *end = cursor;
+            while (*end && *end != ' ') end++;
+
+            switch (field_index) {
+            case 3:  ppid       = (pid_t)atoi(cursor);           break;
+            case 5:  session    = atoi(cursor);                  break;
+            case 19: num_threads = atol(cursor); found_threads = 1; break;
+            case 21: start_time = strtoull(cursor, NULL, 10); found_start = 1; break;
+            case 23: rss        = atol(cursor); found_rss = 1;   break;
             }
-            tok = strtok(NULL, " ");
+
+            if (found_rss)
+                break;
+
+            cursor = end;
             field_index++;
         }
 
@@ -521,19 +528,17 @@ static void select_processes(int matched, process_info_t *matches, int *selected
 }
 
 /* Confirm and act on selected processes. Text is displayed based on mode */
-static void confirm_and_act(const swordfish_args_t *args, int count, int *selected,
+static int confirm_and_act(const swordfish_args_t *args, int count, int *selected,
                             process_info_t *matches) {
     if (count == 0)
-        return;
+        return EXIT_NO_MATCH;
 
     int sig = args->sig;
-
-    run_hook(args->pre_hook, matches[selected[0]].pid, matches[selected[0]].name);
 
     if (args->operation == SWOP_STATIC) {
         for (int i = 0; i < count; ++i)
             print_proc_info(&matches[selected[i]], sig, args, "", false);
-        return;
+        return EXIT_FOUND;
     }
 
     if (args->operation != SWOP_STATIC && !args->auto_confirm && is_interactive()) {
@@ -552,8 +557,10 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
         char confirm[8] = {0};
         fgets(confirm, sizeof(confirm), stdin);
         if (tolower(confirm[0]) != 'y')
-            return;
+            return EXIT_NO_MATCH;
     }
+
+    run_hook(args->pre_hook, matches[selected[0]].pid, matches[selected[0]].name);
 
     /* dry run — show what would happen without doing it */
     if (args->dry_run) {
@@ -562,22 +569,32 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
             INFO("Would send signal %d (%s) to PID %d (%s)", sig, strsignal(sig),
                  matches[idx].pid, matches[idx].name);
         }
-        return;
+        return EXIT_FOUND;
     }
+
+    int killed = 0;
+    int failed = 0;
+    bool all_eperm = true;
 
     for (int i = 0; i < count; ++i) {
         int idx = selected[i];
         if (is_zombie_process(matches[idx].pid)) {
             printf("PID %d (%s) is a zombie process and may not be killed\n",
                    matches[idx].pid, matches[idx].name);
+            failed++;
             continue;
         }
 
         if (kill(matches[idx].pid, sig) == 0) {
             print_proc_info(&matches[idx], sig, args, strsignal(sig), true);
+            killed++;
+            all_eperm = false;
         } else {
+            if (errno != EPERM)
+                all_eperm = false;
             ERROR("Failed to send signal %d to PID %d (%s): %s", sig, matches[idx].pid,
                   matches[idx].name, strerror(errno));
+            failed++;
         }
     }
 
@@ -621,6 +638,10 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
     }
 
     run_hook(args->post_hook, matches[selected[0]].pid, matches[selected[0]].name);
+
+    if (failed == 0)       return EXIT_FOUND;
+    if (killed == 0)       return all_eperm ? EXIT_PERMISSION : EXIT_NO_MATCH;
+    return EXIT_PARTIAL;
 }
 
 /* Scans the /proc directory for processes */
@@ -654,6 +675,7 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
         }
 
         int selected[MAX_MATCHES], count = 0;
+        int result = EXIT_NO_MATCH;
         if (matched > 0) {
             if (args->top_only) {
                 selected[count++] = 0;
@@ -663,20 +685,20 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
                 for (int i = 0; i < matched; ++i)
                     selected[count++] = i;
             }
-            confirm_and_act(args, count, selected, matches);
+            result = confirm_and_act(args, count, selected, matches);
         } else if (tries == 0) {
             printf("No processes matched\n");
         }
 
-        if (args->retry_time <= 0)
-            break;
-
-        if (matched == 0 || args->retry_time > 0) {
-            sleep(args->retry_time);
-            tries++;
+        if (args->retry_time <= 0 || matched > 0) {
+            free_compiled_patterns(compiled, plist->pattern_count);
+            return matched > 0 ? result : EXIT_NO_MATCH;
         }
+
+        sleep(args->retry_time);
+        tries++;
     }
 
     free_compiled_patterns(compiled, plist->pattern_count);
-    return 0;
+    return EXIT_FOUND;
 }
