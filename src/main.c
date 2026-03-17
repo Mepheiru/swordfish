@@ -258,13 +258,34 @@ int main(int arg_count, char **argv) {
 
     /* Check if any patterns are PIDs
        If so, search for the pid directly instead*/
-    bool pattern_is_pid[pattern_count];
+    bool pattern_is_pid[pattern_count + 1];
 
     for (int i = 0; i < pattern_count; ++i)
         pattern_is_pid[i] = !!is_all_digits(patterns[i]);
+
+    /* read PID from file and append to pattern list if pidfile argument is used */
+    char pidfile_pid_str[16] = {0};
+    if (args.pidfile) {
+        FILE *f = fopen(args.pidfile, "r");
+        if (!f) {
+            ERROR("Cannot open pidfile: %s", args.pidfile);
+            return 1;
+        }
+        pid_t pid = 0;
+        if (fscanf(f, "%d", &pid) != 1 || pid <= 0) {
+            fclose(f);
+            ERROR("Invalid PID in pidfile: %s", args.pidfile);
+            return 1;
+        }
+        fclose(f);
+        snprintf(pidfile_pid_str, sizeof(pidfile_pid_str), "%d", pid);
+        patterns[pattern_count] = pidfile_pid_str;
+        pattern_is_pid[pattern_count] = true;
+        pattern_count++;
+    }
+
     pattern_list_t plist = {
         .patterns = patterns, .pattern_is_pid = pattern_is_pid, .pattern_count = pattern_count};
 
-    /* Return the scanned processes, which will also display the interface*/
     return scan_processes(&args, &plist);
 }

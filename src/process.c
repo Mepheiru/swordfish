@@ -393,10 +393,16 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         long num_threads = 0;
         unsigned long long start_time = 0;
         long rss = 0;
+        pid_t ppid = 0;
+        int session = 0;
         int found_threads = 0, found_start = 0, found_rss = 0;
 
         while (tok) {
-            if (field_index == 19) {
+            if (field_index == 3) {
+                ppid = (pid_t)atoi(tok);
+            } else if (field_index == 5) {
+                session = atoi(tok);
+            } else if (field_index == 19) {
                 num_threads = atol(tok);
                 found_threads = 1;
             } else if (field_index == 21) {
@@ -426,6 +432,13 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             continue;
 
         if (args->user && strcasecmp(p.owner, args->user) != 0)
+            continue;
+
+        /* parent and session filters applied before cmdline read for efficiency */
+        if (args->parent_pid && ppid != args->parent_pid)
+            continue;
+
+        if (args->session_id && session != args->session_id)
             continue;
 
         p.cmdline[0] = '\0';
@@ -515,18 +528,20 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
 
     int sig = args->sig;
 
-    // Pre-kill hook
     run_hook(args->pre_hook, matches[selected[0]].pid, matches[selected[0]].name);
 
-    // Confirm mode
+    if (args->operation == SWOP_STATIC) {
+        for (int i = 0; i < count; ++i)
+            print_proc_info(&matches[selected[i]], sig, args, "", false);
+        return;
+    }
+
     if (args->operation != SWOP_STATIC && !args->auto_confirm && is_interactive()) {
         for (int i = 0; i < count; ++i)
             print_proc_info(&matches[selected[i]], sig, args, "  PID", false);
 
-        // Show warning if any selected process is root
-        if (args->operation != SWOP_STATIC && has_root_process(count, selected, matches, 0) && is_interactive()) {
+        if (has_root_process(count, selected, matches, 0))
             WARN("At least one selected process is owned by root!");
-        }
 
         if (count == 1)
             printf("The process above will be affected (signal %d - %s)\n", sig, strsignal(sig));
@@ -534,28 +549,27 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
             printf("The processes above will be affected (signal %d - %s)\n", sig, strsignal(sig));
         printf("Proceed? [y/N]: ");
 
-        // If the user confirms, proceed to the for loop below
         char confirm[8] = {0};
         fgets(confirm, sizeof(confirm), stdin);
-        if (tolower(confirm[0]) != 'y') {
+        if (tolower(confirm[0]) != 'y')
             return;
-        }
     }
 
-    if (args->operation == SWOP_STATIC) {
+    /* dry run — show what would happen without doing it */
+    if (args->dry_run) {
         for (int i = 0; i < count; ++i) {
             int idx = selected[i];
-            print_proc_info(&matches[idx], sig, args, "", false);
+            INFO("Would send signal %d (%s) to PID %d (%s)", sig, strsignal(sig),
+                 matches[idx].pid, matches[idx].name);
         }
         return;
     }
 
-    // Else, act on selected processes
     for (int i = 0; i < count; ++i) {
         int idx = selected[i];
         if (is_zombie_process(matches[idx].pid)) {
-            printf("PID %d (%s) is a zombie process and may not be killed\n", matches[idx].pid,
-                   matches[idx].name);
+            printf("PID %d (%s) is a zombie process and may not be killed\n",
+                   matches[idx].pid, matches[idx].name);
             continue;
         }
 
@@ -566,7 +580,46 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
                   matches[idx].name, strerror(errno));
         }
     }
-    // Post-kill hook
+
+    /* wait/timeout applied after all signals are sent so we don't block
+       per-process — all processes get their signal before we start polling */
+    if (args->timeout > 0 || args->wait_for_death) {
+        int timeout_ms = args->timeout * 1000;
+        int elapsed_ms = 0;
+
+        bool any_alive = true;
+        while (any_alive) {
+            any_alive = false;
+            for (int i = 0; i < count; ++i) {
+                int idx = selected[i];
+                char proc_path[32];
+                snprintf(proc_path, sizeof(proc_path), "/proc/%d", matches[idx].pid);
+                if (access(proc_path, F_OK) == 0)
+                    any_alive = true;
+            }
+            if (!any_alive)
+                break;
+
+            if (args->timeout > 0 && elapsed_ms >= timeout_ms) {
+                /* escalate all still-alive processes to SIGKILL */
+                for (int i = 0; i < count; ++i) {
+                    int idx = selected[i];
+                    char proc_path[32];
+                    snprintf(proc_path, sizeof(proc_path), "/proc/%d", matches[idx].pid);
+                    if (access(proc_path, F_OK) == 0) {
+                        kill(matches[idx].pid, SIGKILL);
+                        INFO("PID %d did not die after %ds, escalated to SIGKILL",
+                             matches[idx].pid, args->timeout);
+                    }
+                }
+                break;
+            }
+
+            usleep(10000);
+            elapsed_ms += 10;
+        }
+    }
+
     run_hook(args->post_hook, matches[selected[0]].pid, matches[selected[0]].name);
 }
 

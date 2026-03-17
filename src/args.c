@@ -20,7 +20,7 @@
 
 #define MAX_EXCLUDE_PATTERNS 16
 
-static const char *short_opts = "kSWxyvtpnwr:";
+static const char *short_opts = "kSWxyvtpnwr";
 
 static struct option long_opts[] = {
     {"sort",        required_argument, NULL, LOPT_SORT},
@@ -297,7 +297,7 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
             args->format = optarg;
             break;
 
-        case LOPT_PARENT:
+        case LOPT_PARENT:            
             args->parent_pid = (pid_t)atoi(optarg);
             break;
 
