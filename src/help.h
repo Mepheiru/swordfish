@@ -1,5 +1,4 @@
 #pragma once
-#include <stdio.h>
 #include <signal.h>
 #include <stdbool.h>
 
@@ -54,5 +53,5 @@ extern const size_t swordfish_usage_count;
 extern const size_t signals_count;
 
 void usage(const char *prog);
-void help(const char *prog, const char *category);
-void help_man(FILE *out);
+void help(const char *category);
+void gen_man(const char *out);

@@ -9,5 +9,6 @@ Help categories:
   behavior   Confirmation, verbosity, and execution behavior
   misc       Completions, versioning, and man pages
   arguments  Full argument reference
+  perf       how Swordfish is optimized
 
 Run 'swordfish --help <category>' for details.

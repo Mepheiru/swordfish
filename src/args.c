@@ -219,16 +219,7 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
             break;
         case 1007: {
             const char *out_path = (optind < *argc) ? argv[optind++] : NULL;
-            FILE *out = stdout;
-            if (out_path) {
-                out = fopen(out_path, "w");
-                if (!out) {
-                    ERROR("Failed to open output file for man page: %s", out_path);
-                    exit(1);
-                }
-            }
-            help_man(out);
-            if (out != stdout) fclose(out);
+            gen_man(out_path);
             exit(0);
         }
 
