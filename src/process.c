@@ -513,19 +513,18 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
     if (count == 0)
         return;
 
-    // Use SIGKILL if -K, otherwise use whatever signal is in args->sig
-    int sig = args->do_kill ? SIGKILL : args->sig;
+    int sig = args->sig;
 
     // Pre-kill hook
     run_hook(args->pre_hook, matches[selected[0]].pid, matches[selected[0]].name);
 
     // Confirm mode
-    if (!args->run_static && !args->auto_confirm && is_interactive()) {
+    if (args->operation != SWOP_STATIC && !args->auto_confirm && is_interactive()) {
         for (int i = 0; i < count; ++i)
             print_proc_info(&matches[selected[i]], sig, args, "  PID", false);
 
         // Show warning if any selected process is root
-        if (!args->run_static && has_root_process(count, selected, matches, 0) && is_interactive()) {
+        if (args->operation != SWOP_STATIC && has_root_process(count, selected, matches, 0) && is_interactive()) {
             WARN("At least one selected process is owned by root!");
         }
 
@@ -543,8 +542,7 @@ static void confirm_and_act(const swordfish_args_t *args, int count, int *select
         }
     }
 
-    // If the user has not specified any signal, just print proc info
-    if (args->run_static) {
+    if (args->operation == SWOP_STATIC) {
         for (int i = 0; i < count; ++i) {
             int idx = selected[i];
             print_proc_info(&matches[idx], sig, args, "", false);
@@ -606,7 +604,7 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
         if (matched > 0) {
             if (args->top_only) {
                 selected[count++] = 0;
-            } else if (args->select_mode && !args->auto_confirm) {
+            } else if (args->operation == SWOP_SELECT && !args->auto_confirm) {
                 select_processes(matched, matches, selected, &count, args, args->sig);
             } else {
                 for (int i = 0; i < matched; ++i)

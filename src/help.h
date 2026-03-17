@@ -42,9 +42,6 @@ typedef struct {
     const char *long_flag;
 } swordfish_option_map_t;
 
-
-extern const char *short_opts;
-
 extern const swordfish_option_t swordfish_options[];
 extern const size_t swordfish_options_count;
 extern const swordfish_usage_example_t swordfish_usage[];

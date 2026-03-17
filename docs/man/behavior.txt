@@ -1,4 +1,4 @@
-Behavior -- Confirmation and Execution -- Compiled for v1.2.5
+Behavior -- Confirmation and Execution -- Compiled for v1.3.0
 
 When Swordfish matches processes, it shows them and asks for confirmation before
 sending any signals. The flags below change how that works.
@@ -6,12 +6,15 @@ sending any signals. The flags below change how that works.
   -y                     Auto-confirm; skip the confirmation prompt
   -S                     Interactive selection — choose which matched processes to act on
   -t                     Always act on only the top (first) matched process
-  -r <time>              Retry every <time> seconds if no processes are matched
+  -n                     Dry run — show what would happen without doing it
+  -w                     Wait for the process to die after sending a signal
+  --retry <seconds>      Retry every <seconds> if no processes are matched
+  --timeout <seconds>    Escalate to SIGKILL after <seconds> if process does not die
 
 Static Mode:
-Running Swordfish with just a pattern and no signal flag (no -k, -K, etc.) enters
-Static Mode. No signals are sent and just lists matching processes. Good for
-checking what's running before committing to a kill.
+Running Swordfish with just a pattern and no operation flag enters Static Mode.
+No signals are sent and it just lists matching processes. Good for checking what's
+running before committing to a kill.
 
 Verbosity:
 The "-v" flag increases how much info is shown per process. Stack up to three:

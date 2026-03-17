@@ -1,21 +1,27 @@
-Signal Control -- How Swordfish Sends Signals -- Compiled for v1.2.5
+Signal Control -- How Swordfish Sends Signals -- Compiled for v1.3.0
 
 Swordfish gives you full control over which signal gets sent to matching processes.
+The signal embeds directly after -k as a number or named signal.
 
-  -k                     Send SIGTERM (graceful shutdown — process can clean up)
-  -K                     Send SIGKILL (forceful shutdown — process is terminated immediately)
+  -k                     Send SIGTERM (default — graceful shutdown)
+  -k9                    Send SIGKILL (forceful — process is terminated immediately)
+  -k15                   Send SIGTERM explicitly by number
+  -kHUP                  Send SIGHUP (commonly used to reload configs)
+  -kUSR1                 Send SIGUSR1
+  -kUSR2                 Send SIGUSR2
 
-Think of "-k" as asking nicely and "-K" as not asking at all.
+Think of "-k" as asking nicely and "-k9" as not asking at all.
 
-You can also send any arbitrary signal using "-<sig>". Both numeric and named forms work:
+Named signals can be combined with modifiers. The signal always comes immediately
+after -k, modifiers follow after:
 
-  -9                     Send SIGKILL (same as -K)
-  -15                    Send SIGTERM (same as -k)
-  -10                    Send SIGUSR1
-  -TERM                  Send SIGTERM by name
-  -KILL                  Send SIGKILL by name
-  -HUP                   Send SIGHUP (commonly used to reload configs)
+  -k9y firefox           SIGKILL + auto-confirm
+  -kHUPy nginx           SIGHUP + auto-confirm
+  -k9xy firefox          SIGKILL + exact match + auto-confirm
 
 Supported named signals: HUP, INT, QUIT, KILL, TERM, USR1, USR2, STOP, CONT
 
-If you group "-k" and "-K" together (e.g. "-kK"), the last one wins, so "-kK" sends SIGKILL.
+If no signal is specified, SIGTERM is used. To escalate to SIGKILL automatically
+if the process doesn't die, use --timeout:
+
+  -k --timeout 5 firefox   Send SIGTERM, escalate to SIGKILL after 5 seconds

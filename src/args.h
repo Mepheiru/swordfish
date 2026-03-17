@@ -1,34 +1,70 @@
 #pragma once
 #include <stdint.h>
+#include <sys/types.h>
 
-/* Sorting modes for --sort */
-typedef enum : uint8_t { SWSORT_NONE = 0, SWSORT_CPU, SWSORT_RAM, SWSORT_AGE } swordfish_sort_mode_t;
+/* Sorting modes */
+typedef enum : uint8_t {
+    SWSORT_NONE = 0,
+    SWSORT_RAM,
+    SWSORT_AGE,
+} swordfish_sort_mode_t;
 
-/* Command-line arguments structure definitions */
+/* Operations */
+typedef enum : uint8_t {
+    SWOP_STATIC = 0,
+    SWOP_KILL,
+    SWOP_SELECT,
+    SWOP_WATCH,
+} swordfish_op_t;
+
+/* Long opt identifiers */
+typedef enum {
+    LOPT_SORT        = 1000,
+    LOPT_HELP        = 1001,
+    LOPT_EXCLUDE     = 1002,
+    LOPT_PRE_HOOK    = 1003,
+    LOPT_POST_HOOK   = 1004,
+    LOPT_COMPLETIONS = 1005,
+    LOPT_VERSION     = 1006,
+    LOPT_MAN         = 1007,
+    LOPT_USER        = 1008,
+    LOPT_RETRY       = 1009,
+    LOPT_TIMEOUT     = 1010,
+    LOPT_FORMAT      = 1011,
+    LOPT_PARENT      = 1012,
+    LOPT_SESSION     = 1013,
+    LOPT_PIDFILE     = 1014,
+    LOPT_OUTPUT      = 1015,
+} swordfish_lopt_t;
+
+/* Main arguments struct */
 typedef struct {
     const char *sig_str;
-    const char *sort_key;
     const char *user;
+    const char *format;
+    const char *pidfile;
+    const char *help_topic;
     const char **exclude_patterns;
+    int sig;
+    int retry_time;
+    int timeout;
+    int session_id;
     char pre_hook[256];
     char post_hook[256];
-    unsigned short int sig;
+    pid_t parent_pid;
     short int exclude_count;
     short int pattern_start_idx;
     short int verbose_level;
-    int retry_time;
-    unsigned int do_term       : 1;
-    unsigned int do_kill       : 1;
-    unsigned int do_sig        : 1;
-    unsigned int select_mode   : 1;
-    unsigned int exact_match   : 1;
-    unsigned int print_pids_only : 1;
-    unsigned int auto_confirm  : 1;
-    unsigned int run_static    : 1;
-    unsigned int top_only      : 1;
-    unsigned int hide_root     : 1;
+    swordfish_op_t operation;
     swordfish_sort_mode_t sort_mode;
-    const char *help_topic;
+    unsigned int exact_match     : 1;
+    unsigned int auto_confirm    : 1;
+    unsigned int print_pids_only : 1;
+    unsigned int top_only        : 1;
+    unsigned int hide_root       : 1;
+    unsigned int dry_run         : 1;
+    unsigned int wait_for_death  : 1;
 } swordfish_args_t;
 
 int parse_args(int *argc, char **argv, swordfish_args_t *args);
+int get_signal(const char *sigstr);

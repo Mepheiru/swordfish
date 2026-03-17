@@ -94,7 +94,7 @@ $(REL_BUILDDIR)/swordfish: $(OBJ_REL) $(DOC_OBJ_REL)
 
 
 install: rel
-	install -Dm755 $(DEV_BUILDDIR)/swordfish $(DESTDIR)$(BINDIR)/swordfish
+	install -Dm755 $(REL_BUILDDIR)/swordfish $(DESTDIR)$(BINDIR)/swordfish
 
 
 uninstall:

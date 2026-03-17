@@ -1,6 +1,6 @@
-Swordfish -- A pkill-like CLI tool
+Swordfish -- A fast process manager
 
-Usage: swordfish [options] pattern [pattern ...]
+Usage: swordfish [operation] [modifiers] pattern [pattern ...]
 
 Help categories:
   general    Basic usage and common flags
@@ -9,6 +9,5 @@ Help categories:
   behavior   Confirmation, verbosity, and execution behavior
   misc       Completions, versioning, and man pages
   arguments  Full argument reference
-  perf       how Swordfish is optimized
 
 Run 'swordfish --help <category>' for details.

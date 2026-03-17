@@ -1,21 +1,26 @@
-General Options -- Basic Usage for Swordfish -- Compiled for v1.2.5
+General Options -- Basic Usage for Swordfish -- Compiled for v1.3.0
 
-All flags can be grouped together. For example: "-K -S" can be written as "-KS".
-Below are the commonly used options for controlling how Swordfish finds and interacts with processes.
+All flags can be grouped together. For example: "-S -y" can be written as "-Sy".
 
-  -h, --help             Show help message
+Operations (capital, mutually exclusive):
+  -k                     Send a signal to matching processes (default: SIGTERM)
+  -S                     Interactively select which processes to act on
+  -W                     Watch matching processes live
+
+Modifiers (lowercase, stackable):
+  -x                     Exact match process names (default: substring match)
+  -y                     Auto-confirm; skip all prompts
   -v                     Increase verbosity level up to -vvv for maximum verbosity
-  -k                     Send SIGTERM to matching processes (graceful shutdown)
-  -K                     Send SIGKILL to matching processes (forceful shutdown)
-  -S                     Select which processes to act on (interactive prompt)
-  -y                     Auto-confirm; skip prompts and confirmation
+  -t                     Always act on only the top matched process
   -p                     Print raw PIDs only
+  -n                     Dry run — show what would happen without doing it
+  -w                     Wait for the process to die after sending a signal
+  -r                     Hide processes owned by root
 
-Supplying a pattern without any signal flags will enter "Static Mode" where Swordfish will
-find and display matching processes without sending any signals. Useful for checking
-if something is running before you decide to kill it.
+Supplying a pattern without an operation enters Static Mode where Swordfish finds and
+displays matching processes without sending any signals. Good for checking what's
+running before committing to a kill.
 
-By default, Swordfish asks for confirmation before sending signals. Use "-y" to skip
-this and execute immediately.
+By default, Swordfish asks for confirmation before acting. Use "-y" to skip this.
 
 Run 'swordfish --help <category>' for more detail on a specific topic.

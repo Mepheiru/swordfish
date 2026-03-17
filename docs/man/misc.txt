@@ -1,4 +1,4 @@
-Miscellaneous -- Compiled for v1.2.5
+Miscellaneous -- Compiled for v1.3.0
 
 Shell Completions:
 Swordfish officially supports completions for Bash, Zsh, and Fish. Generate them
@@ -7,8 +7,8 @@ with "--completions <shell>". Output goes to stdout by default, or to a file if 
   --completions <shell> [file]   Generate completions for fish, bash, or zsh
 
 Examples:
-  swordfish --completions fish                  Print fish completions to stdout
-  swordfish --completions bash ~/.bash_complete Write bash completions to a file
+  swordfish --completions fish                   Print fish completions to stdout
+  swordfish --completions bash ~/.bash_complete  Write bash completions to a file
 
 Version:
   --version              Show the current installed version of Swordfish
@@ -18,5 +18,12 @@ Man pages are generated automatically on every build and written to docs/swordfi
 You can also generate them manually and write to a custom path:
 
   --man [file]           Generate the man page, optionally writing to <file>
+
+The man page is built dynamically from all help pages combined and formatted.
+
+Output Format:
+Custom output format strings let you control exactly what gets printed per process:
+
+  --format <string>      Custom output format string
 
 The man page is built dynamically from all help pages combined and formatted.

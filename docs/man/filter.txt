@@ -1,22 +1,27 @@
-Filtering -- Which Processes Are Matched -- Compiled for v1.2.5
+Filtering -- Which Processes Are Matched -- Compiled for v1.3.0
 
 By default, Swordfish does a case-insensitive substring match against process names
 and command line arguments. The flags below let you narrow down or change how matching works.
 
   -x                     Exact match only (default: substring match)
-  -u <USER>              Only show processes owned by <USER>
-  -R                     Hide processes owned by root
+  -r                     Hide processes owned by root
+  --user <user>          Only show processes owned by <user>
   --exclude <pattern>    Exclude processes matching <pattern> from results
+  --parent <pid>         Match only children of the given parent PID
+  --session <sid>        Match processes by session ID
+  --pidfile <file>       Read target PID from file
 
 Patterns support basic regex. If your pattern looks like a regex (contains ^, $, *, etc.)
 Swordfish will compile and use it automatically. Wrap a pattern in ^<pattern>$ to force
 an exact match via regex, or just use "-x" for simple exact matching.
 
+Multiple patterns can be supplied and any match will include the process:
+
+  swordfish firefox chrome    Show processes matching 'firefox' or 'chrome'
+
 Sorting:
 
   --sort <ram|age>       Sort the process list by RAM usage or age
-  ?ram                   Shorthand alias for --sort ram
-  ?age                   Shorthand alias for --sort age
 
 The default sort order matches the order entries appear in /proc, which is generally
 lowest to highest PID.

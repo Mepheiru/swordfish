@@ -33,40 +33,49 @@ static void man_args(FILE *out, bool isman);
 static void man_perf(FILE *out, bool isman);
 
 const swordfish_option_t swordfish_options[] = {
-    {"-S", NULL, NULL, "Select which PIDs to kill (interactive prompt)", true},
-    {"-k", NULL, NULL, "Send SIGTERM to matching processes (Graceful shutdown)", true},
-    {"-K", NULL, NULL, "Send SIGKILL to matching processes (Forceful shutdown)", true},
+    /* Operations */
+    {"-k", NULL, NULL, "Send signal to matching processes (default: SIGTERM). Signal embeds directly: -k9, -kHUP, -k15", true},
+    {"-S", NULL, NULL, "Interactively select which processes to act on", true},
+    {"-W", NULL, NULL, "Watch matching processes live", true},
+
+    /* Modifiers */
     {"-x", NULL, NULL, "Exact match process names (default: substring match)", true},
-    {"-y", NULL, NULL, "Auto-confirm kills; skip prompts and sudo confirmation", true},
-    {"-p", NULL, NULL, "Print raw PIDs only", true},
-    {"-t", NULL, NULL, "Always select the top process", true},
+    {"-y", NULL, NULL, "Auto-confirm; skip all prompts", true},
     {"-v", NULL, NULL, "Increase verbosity level up to -vvv for maximum verbosity", true},
-    {"-h", "--help", NULL, "Show help message", true},
-    {"-r", NULL, "<time>", "Retry on failure after waiting <time> seconds", false},
-    {"-R", NULL, NULL, "Hide processes that are owned by root", true},
+    {"-t", NULL, NULL, "Always act on only the top matched process", true},
+    {"-p", NULL, NULL, "Print raw PIDs only", true},
+    {"-n", NULL, NULL, "Dry run; show what would happen without doing it", true},
+    {"-w", NULL, NULL, "Wait for the process to die after sending signal", true},
+    {"-r", NULL, NULL, "Hide processes owned by root", true},
+
+    /* Long opts */
     {NULL, "--sort", "<ram|age>", "Sort process list by RAM or age", false},
     {NULL, "--exclude", "<pattern>", "Exclude processes matching pattern", false},
+    {NULL, "--user", "<user>", "Filter processes by username", false},
+    {NULL, "--retry", "<seconds>", "Retry every <seconds> if no match found", false},
+    {NULL, "--timeout", "<seconds>", "Escalate to SIGKILL after <seconds> if process does not die", false},
+    {NULL, "--format", "<string>", "Custom output format string", false},
+    {NULL, "--parent", "<pid>", "Match only children of the given parent PID", false},
+    {NULL, "--session", "<sid>", "Match processes by session ID", false},
+    {NULL, "--pidfile", "<file>", "Read target PID from file", false},
     {NULL, "--pre-hook", "<script>", "Run <script> before sending signals", false},
     {NULL, "--post-hook", "<script>", "Run <script> after sending signals", false},
-    {NULL, "--completions", "<shell> [file]",
-     "Generate shell completions for <shell> (fish, bash, zsh) and output to file if provided",
-     false},
-    {NULL, "--man", "[file]", "Generates the man page for swordfish and output to file if provided",
-     false},
-    {NULL, "--version", NULL, "Shows the current version of your Swordfish install. That's it.",
-     false},
-    {"-u", NULL, "<USER>", "Filter processes by username", false},
+    {NULL, "--completions", "<shell>", "Generate shell completions for fish, bash, or zsh", false},
+    {NULL, "--man", "[file]", "Generate man page, optionally writing to <file>", false},
+    {NULL, "--version", NULL, "Show installed version", false},
+    {NULL, "--help", "[category]", "Show help, optionally for a specific category", false},
 };
 const size_t swordfish_options_count = sizeof(swordfish_options) / sizeof(swordfish_options[0]);
 
 const swordfish_usage_example_t swordfish_usage[] = {
-    {"-k firefox", "Kill all processes with 'firefox' in the name"},
-    {"-kx bash", "Kill all exact matches of 'bash'"},
-    {"-Sk KILL vim", "Interactively select vim processes and send SIGKILL"},
-    {"-ky firefox vim bash",
-     "Kill all 'firefox', 'vim', and 'bash' processes without confirmation"},
-    {"-kyr 1 firefox", "Recursively kill 'firefox' every 1 second"},
-    {"--pre-hook script1.sh nvim", "Run 'script1.sh' before killing Neovim"},
+    {"-k firefox",          "Kill all processes with 'firefox' in the name (SIGTERM)"},
+    {"-k9 firefox",         "Kill all processes with 'firefox' using SIGKILL"},
+    {"-kx bash",            "Kill all exact matches of 'bash'"},
+    {"-k9y firefox",        "Send SIGKILL to all 'firefox' processes without confirmation"},
+    {"-Sky firefox",        "Interactively select firefox processes and kill without confirmation"},
+    {"-kHUP nginx",         "Send SIGHUP to nginx (reload config)"},
+    {"-ky --retry 5 firefox", "Kill 'firefox', retrying every 5 seconds until none remain"},
+    {"--pre-hook notify.sh nvim", "Run 'notify.sh' before killing Neovim"},
 };
 
 const swordfish_completion_guide_t swordfish_completion_guide[] = {
@@ -84,47 +93,51 @@ const swordfish_signal_t signals[] = {
 const size_t signals_count = sizeof(signals) / sizeof(signals[0]);
 
 const swordfish_help_category_info_t help_categories[] = {
-    {"arguments", "Argument List", "List of arguments in swordfish"},
-    {"general", "General Usage", "Basic Usage for swordfish"},
-    {"signals", "Signal Control", "How swordfish sends signals"},
-    {"filter", "Filtering", "Which processes are matched"},
-    {"behavior", "Behavior", "Confirmation and execution behavior"},
-    {"output", "Output", "Output and verbosity control"},
-    {"misc", "Miscellaneous", "Miscellaneous features"},
-    {"arguments", "Arguments", "Detailed list of all cli arguments"},
-    {"perf", "Performance", "how Swordfish is optimized"},
+    {"arguments", "Arguments",   "Full argument reference"},
+    {"general",   "General",     "Basic usage and common flags"},
+    {"signals",   "Signals",     "How Swordfish sends signals"},
+    {"filter",    "Filtering",   "Which processes are matched"},
+    {"behavior",  "Behavior",    "Confirmation and execution behavior"},
+    {"misc",      "Misc",        "Completions, versioning, and man pages"},
+    {"perf",      "Performance", "How Swordfish is optimized"},
 };
 const size_t help_category_count = sizeof(help_categories) / sizeof(help_categories[0]);
 
 const swordfish_option_map_t option_category_map[] = {
-    {"general", "-h", "--help"},
-    {"general", "-v", NULL},
-    {"general", "-k", NULL},
-    {"general", "-y", NULL},
+    {"general",  "-k",  NULL},
+    {"general",  "-S",  NULL},
+    {"general",  "-W",  NULL},
+    {"general",  "-x",  NULL},
+    {"general",  "-y",  NULL},
+    {"general",  "-v",  NULL},
 
-    {"signals", "-k", NULL},
-    {"signals", "-K", NULL},
-    {"signals", "-<sig>", NULL},
+    {"signals",  "-k",  NULL},
+    {"signals",  NULL,  "--timeout"},
 
-    {"filter", "-x", NULL},
-    {"filter", "-u", NULL},
-    {"filter", "-R", NULL},
-    {"filter", NULL, "--exclude"},
-    {"filter", NULL, "--sort"},
+    {"filter",   "-x",  NULL},
+    {"filter",   "-r",  NULL},
+    {"filter",   NULL,  "--user"},
+    {"filter",   NULL,  "--exclude"},
+    {"filter",   NULL,  "--sort"},
+    {"filter",   NULL,  "--parent"},
+    {"filter",   NULL,  "--session"},
+    {"filter",   NULL,  "--pidfile"},
 
-    {"behavior", "-y", NULL},
-    {"behavior", "-t", NULL},
-    {"behavior", "-r", NULL},
-    {"behavior", "-v", NULL},
-    {"behavior", NULL, "--pre-hook"},
-    {"behavior", NULL, "--post-hook"},
+    {"behavior", "-y",  NULL},
+    {"behavior", "-t",  NULL},
+    {"behavior", "-n",  NULL},
+    {"behavior", "-w",  NULL},
+    {"behavior", "-v",  NULL},
+    {"behavior", NULL,  "--retry"},
+    {"behavior", NULL,  "--pre-hook"},
+    {"behavior", NULL,  "--post-hook"},
 
-    // {"output",   "-p", NULL},
-
-    {"output", "-p", NULL},
-    {"misc", NULL, "--completions"},
-    {"misc", NULL, "--man"},
-    {"misc", NULL, "--version"},
+    {"misc",     "-p",  NULL},
+    {"misc",     NULL,  "--format"},
+    {"misc",     NULL,  "--completions"},
+    {"misc",     NULL,  "--man"},
+    {"misc",     NULL,  "--version"},
+    {"misc",     NULL,  "--help"},
 };
 const size_t option_category_map_count =
     sizeof(option_category_map) / sizeof(option_category_map[0]);
@@ -140,8 +153,8 @@ void usage(const char *prog) {
     const int usage_indent = 11;
     const int usage_indent_d = 1;
 
-    printf("Swordfish : A pkill-like CLI tool\n"
-           "Usage: %s [option] pattern [pattern ...]\n\n",
+    printf("Swordfish — A fast process manager\n"
+           "Usage: %s [operation] [modifiers] pattern [pattern ...]\n\n",
            prog);
     for (size_t i = 0; i < swordfish_options_count; ++i) {
         if (!swordfish_options[i].common)
@@ -189,6 +202,7 @@ void help(const char *category) {
             return;
         } else {
             ERROR("Unknown help category: %s", category);
+            ERROR("Run '%s --help' to see available categories", "swordfish");
             return;
         }
     }
@@ -359,7 +373,6 @@ void gen_man(const char *path) {
     }
     fprintf(out, " pattern...\n\n");
 
-    // SECTIONS
     fprintf(out, ".SH GENERAL OPTIONS\n");
     man_general(out, true);
 
@@ -371,9 +384,6 @@ void gen_man(const char *path) {
 
     fprintf(out, ".SH BEHAVIOR\n");
     man_behavior(out, true);
-
-    // fprintf(out, ".SH OUTPUT\n");
-    // man_output(out, true);
 
     fprintf(out, ".SH MISCELLANEOUS\n");
     man_misc(out, true);
