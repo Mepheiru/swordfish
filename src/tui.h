@@ -7,7 +7,7 @@
 #include "process.h"
 
 #define TUI_MAX_QUERY  256
-#define TUI_MAX_SELECT 1024
+#define TUI_MAX_SELECT 512
 
 typedef struct {
     pid_t selected_pids[TUI_MAX_SELECT];
@@ -40,6 +40,10 @@ typedef struct {
     bool confirmed;
     bool cancelled;
     bool confirming;
+
+    bool dirty_query;
+    bool dirty_list;
+    bool dirty_status;
 } tui_state_t;
 
 tui_result_t tui_run(const swordfish_args_t *args,

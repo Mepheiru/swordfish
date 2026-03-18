@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#define MAX_MATCHES 1024
+#define MAX_MATCHES 512
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_YELLOW "\033[33m"
@@ -14,7 +14,7 @@
 #define EXIT_PARTIAL 3
 
 /* INCREMENT ON RELEASE BUILD*/
-#define SWORDFISH_VERSION "1.2.4"
+#define SWORDFISH_VERSION "1.3.0"
 /* INCREMENT ON RELEASE BUILD*/
 
 #define WARN(msg, ...) \

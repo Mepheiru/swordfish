@@ -251,7 +251,15 @@ static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
     return match_process(p->name, p->cmdline, compiled, plist->pattern_count);
 }
 
-/* Helper for printing proc info based on the display mode */
+static void fmt_ram(char *buf, size_t len, long ram_mb) {
+    if (ram_mb <= 0)
+        snprintf(buf, len, "-");
+    else if (ram_mb >= 1024)
+        snprintf(buf, len, "%.1f GiB", ram_mb / 1024.0);
+    else
+        snprintf(buf, len, "%.1f MiB", (double)ram_mb);
+}
+
 static void print_proc_info(const process_info_t *p, int sig, const swordfish_args_t *args,
                             const char *prefix, bool include_signal) {
     bool tty = is_output_terminal();
@@ -269,13 +277,14 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
         fclose(f);
     }
     long age_min = (uptime - (p->start_time / sysconf(_SC_CLK_TCK))) / 60;
+    char ram_buf[32]; fmt_ram(ram_buf, sizeof(ram_buf), p->ram);
 
     // Verbose
     if (args->verbose_level >= 3 || !tty) {
         printf("[%c] %d \"%s\" cmdl: \"%s\" threads: \"%s\" owned by ", p->status.state, p->pid,
                p->name, p->cmdline, p->status.threads);
         printf(owner_fmt, p->owner);
-        printf("\n    RAM: \"%ld MB\" AGE: \"%ld min\"", p->ram, age_min);
+        printf("\n    RAM: \"%s\" AGE: \"%ld min\"", ram_buf, age_min);
 
         if (include_signal)
             printf(" [signal %d (%s)]", sig, strsignal(sig));
@@ -306,7 +315,7 @@ static void print_proc_info(const process_info_t *p, int sig, const swordfish_ar
     // Append sort modes if any are enabled
     if (tty) {
         if (args->sort_mode == SWSORT_RAM)
-            printf(" [%ld MB]", p->ram);
+            printf(" [%s]", ram_buf);
         else if (args->sort_mode == SWSORT_AGE)
             printf(" [%ld min]", age_min > 0 ? age_min : 0);
     }
@@ -453,7 +462,8 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             continue;
 
         p.cmdline[0] = '\0';
-        if (!entry_matches(&p, plist, args, compiled)) {
+        /* always read cmdline for -W so the TUI fuzzy search has data */
+        if (args->operation == SWOP_FUZZY|| !entry_matches(&p, plist, args, compiled)) {
             memcpy(path + base_len, "cmdline", 8);
             FILE *fcmd = fopen(path, "r");
             if (fcmd) {
@@ -464,20 +474,15 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
                         p.cmdline[i] = ' ';
                 p.cmdline[n] = '\0';
             }
-            if (!entry_matches(&p, plist, args, compiled))
+            if (args->operation != SWOP_FUZZY && !entry_matches(&p, plist, args, compiled))
                 continue;
         }
 
-        switch (args->sort_mode) {
-        case SWSORT_RAM:
-            p.ram = rss * page_size / (1024 * 1024);
-            break;
-        case SWSORT_AGE:
+        if (args->operation == SWOP_FUZZY || args->sort_mode == SWSORT_RAM)
+            p.ram = (rss * page_size) >> 20; /* MiB via bitshift */
+
+        if (args->operation == SWOP_FUZZY || args->sort_mode == SWSORT_AGE)
             p.start_time = start_time;
-            break;
-        default:
-            break;
-        }
 
         if (matched < MAX_MATCHES)
             matches[matched++] = p;
@@ -654,8 +659,12 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
     compile_patterns(args, plist, compiled);
 
     int tries = 0;
+    process_info_t *matches = malloc(MAX_MATCHES * sizeof(process_info_t));
+    if (!matches) {
+        ERROR("Out of memory");
+        return EXIT_NO_MATCH;
+    }
     while (1) {
-        process_info_t matches[MAX_MATCHES];
         int matched = find_matching_processes(args, plist, matches, compiled);
 
         // Only sort if there are multiple matches
@@ -683,7 +692,7 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
         if (matched > 0) {
             if (args->top_only) {
                 selected[count++] = 0;
-            } else if (args->operation == SWOP_WATCH) {
+            } else if (args->operation == SWOP_FUZZY) {
                 tui_result_t tui = tui_run(args, matches, matched);
                 /* map returned PIDs back to indices in matches[] */
                 for (int i = 0; i < tui.count; ++i) {
@@ -707,6 +716,7 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
 
         if (args->retry_time <= 0 || matched > 0) {
             free_compiled_patterns(compiled, plist->pattern_count);
+            free(matches);
             return matched > 0 ? result : EXIT_NO_MATCH;
         }
 
@@ -715,5 +725,6 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
     }
 
     free_compiled_patterns(compiled, plist->pattern_count);
+    free(matches);
     return EXIT_FOUND;
 }

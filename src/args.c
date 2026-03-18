@@ -20,7 +20,7 @@
 
 #define MAX_EXCLUDE_PATTERNS 16
 
-static const char *short_opts = "kSWxyvtpnwr";
+static const char *short_opts = "SFkxyvtpnwr";
 
 static struct option long_opts[] = {
     {"sort",        required_argument, NULL, LOPT_SORT},
@@ -103,12 +103,9 @@ static int extract_kill_signal(int *argc, char **argv, char *rewrite_buf,
 
         const char *after_k = argv[i] + 2;
 
-        /* plain -k with nothing after, or -k followed immediately
-           by a lowercase modifier — no signal embedded */
         if (*after_k == '\0' || islower((unsigned char)*after_k))
             continue;
 
-        /* consume uppercase and digit chars as the signal */
         const char *p = after_k;
         while (*p && (isupper((unsigned char)*p) || isdigit((unsigned char)*p)))
             p++;
@@ -125,19 +122,17 @@ static int extract_kill_signal(int *argc, char **argv, char *rewrite_buf,
         if (sig < 0)
             return -1;
 
-        /* rewrite -k9y as -ky so getopt handles the modifiers normally */
+        // rewrite -k9y as -ky so getopt handles the modifiers normally
         if (*p != '\0') {
             snprintf(rewrite_buf, buf_size, "-%s", p);
             argv[i] = rewrite_buf;
 
-            /* insert plain -k before the rewritten modifiers */
             if (*argc + 1 < 64) {
                 memmove(&argv[i + 1], &argv[i], (*argc - i) * sizeof(char *));
                 argv[i] = "-k";
                 (*argc)++;
             }
         } else {
-            /* -k9 with no trailing modifiers — just rewrite as -k */
             argv[i] = "-k";
         }
 
@@ -154,7 +149,6 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
     static const char *exclude_buf[MAX_EXCLUDE_PATTERNS];
     int exclude_count = 0;
 
-    /* rewrite buffer lives here so argv[i] can point into it safely */
     char kill_rewrite[32] = {0};
 
     int sig = extract_kill_signal(&local_argc, argv, kill_rewrite,
@@ -172,7 +166,7 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
                                long_opts, &longindex)) != -1) {
         switch (opt) {
 
-        /* Operations — mutually exclusive */
+        // Operations
         case 'k':
             if (args->operation != SWOP_STATIC) {
                 ERROR("Only one operation flag allowed");
@@ -189,30 +183,30 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
             args->operation = SWOP_SELECT;
             break;
 
-        case 'W':
+        case 'F':
             if (args->operation != SWOP_STATIC) {
                 ERROR("Only one operation flag allowed");
                 return 1;
             }
-            args->operation = SWOP_WATCH;
+            args->operation = SWOP_FUZZY;
             break;
 
-        /* Modifiers */
-        case 'x': args->exact_match     = 1; break;
-        case 'y': args->auto_confirm    = 1; break;
+        // Modifiers
+        case 'x': args->exact_match = 1; break;
+        case 'y': args->auto_confirm = 1; break;
         case 'p': args->print_pids_only = 1; break;
-        case 't': args->top_only        = 1; break;
-        case 'n': args->dry_run         = 1; break;
-        case 'w': args->wait_for_death  = 1; break;
-        case 'r': args->hide_root       = 1; break;
+        case 't': args->top_only = 1; break;
+        case 'n': args->dry_run = 1; break;
+        case 'w': args->wait_for_death = 1; break;
+        case 'r': args->hide_root = 1; break;
 
         case 'v':
-            /* cap at 3 — beyond that verbosity is meaningless */
+            // cap at 3 since beyond that verbosity is meaningless
             if (args->verbose_level < 3)
                 args->verbose_level++;
             break;
 
-        /* Long opts */
+        // Long opts
         case LOPT_SORT:
             if (strcmp(optarg, "ram") == 0)
                 args->sort_mode = SWSORT_RAM;
@@ -315,18 +309,14 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
     }
 
     args->pattern_start_idx = optind;
-    args->exclude_patterns  = exclude_buf;
-    args->exclude_count     = exclude_count;
+    args->exclude_patterns = exclude_buf;
+    args->exclude_count = exclude_count;
 
-    /* sig is only meaningful for kill operation — reset to SIGTERM
-       if user somehow passed a signal without -k */
     if (args->operation != SWOP_KILL)
         args->sig = SIGTERM;
 
-    /* no pattern and no pidfile means nothing to match against —
-       except -W which opens the TUI showing all processes */
     if (args->pattern_start_idx >= local_argc && !args->pidfile
-        && args->operation != SWOP_WATCH) {
+        && args->operation != SWOP_FUZZY) {
         ERROR("Missing process name pattern(s)");
         return 1;
     }

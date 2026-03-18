@@ -14,7 +14,7 @@ typedef enum : uint8_t {
     SWOP_STATIC = 0,
     SWOP_KILL,
     SWOP_SELECT,
-    SWOP_WATCH,
+    SWOP_FUZZY,
 } swordfish_op_t;
 
 /* Long opt identifiers */

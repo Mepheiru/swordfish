@@ -21,7 +21,7 @@ typedef struct {
     pid_t pid;
     char name[256];
     char owner[64];
-    char cmdline[256];
+    char cmdline[128];
     double cpu;
     long ram;
     long start_time;

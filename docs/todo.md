@@ -8,11 +8,10 @@ Stuff that needs to be done. This document also contains some potential ideas fo
   - Comments need to be quite a lot better.
   - Rename many functions to better suit their function.
   - Remove unused code.
-- Rework how arguments are used to better fit the vision. Current way it's set up is messy and confusing.
 - Write "program.md". It will layout how the program runs and the purpose of each file. Write AFTER the main function is reorganized!!!
 - Improve error handling greatly.
-- `-W` watch operation — `SWOP_WATCH` is defined but never handled in `scan_processes`.
-- `--format` output string — stored in args but never consumed in `print_proc_info`.
+- -F need polish still
+- Add impl tests to swordfish.
 
 ## Features and Tweaks
 
@@ -22,10 +21,7 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 - Process tree support.
 - JSON/CSV export of process lists.
 - Plugin and scripting support.
-- Ncurses interface.
-- Add impl tests to swordfish.
 - Sort mode for process state (running, sleeping, zombie).
-- Process fuzzy finder? I have no idea.
 - Proper systemd integration.
 - Better handling of processes with rapidly changing state (race conditions).
 - Watch mode. Notify the user (via desktop notification or CLI) when a watched process changes state or exits.

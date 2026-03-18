@@ -2,11 +2,19 @@
 #include "fuzzy.h"
 #include "main.h"
 
+// must be a macro — inline asm operand constraints require an addressable lvalue,
+// which a function parameter doesn't guarantee at every call site
+#if defined(__x86_64__)
+#  define PREFETCH(p) __asm__ volatile("prefetcht0 %0"::"m"(*(const char*)(p)))
+#else
+#  define PREFETCH(p) ((void)0)
+#endif
+
 #include <curses.h>
-#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #define QUERY_HEIGHT  3
 #define STATUS_HEIGHT 1
@@ -15,7 +23,7 @@
 #define COL_NAME_W  20
 #define COL_USER_W  12
 #define COL_STATE_W 6
-#define COL_RAM_W   8
+#define COL_RAM_W   10
 
 #define PAIR_NORMAL    1
 #define PAIR_HIGHLIGHT 2
@@ -42,6 +50,10 @@ static void tui_query_backspace(tui_state_t *s);
 static void tui_cursor_move(tui_state_t *s, int delta);
 static void tui_scroll_to_cursor(tui_state_t *s);
 static int  tui_list_height(void);
+static void fmt_ram(char *buf, size_t len, long ram_mb);
+static int  cmp_rows_ram(const void *a, const void *b);
+static int  cmp_rows_score(const void *a, const void *b);
+static void tui_mark_all_dirty(tui_state_t *s);
 
 static void tui_init_colors(void) {
     start_color();
@@ -54,6 +66,15 @@ static void tui_init_colors(void) {
     init_pair(PAIR_STATUS,    COLOR_BLACK,  COLOR_WHITE);
     init_pair(PAIR_ROOT,      COLOR_YELLOW, -1);
     init_pair(PAIR_DIM,       COLOR_WHITE,  -1);
+}
+
+static void fmt_ram(char *buf, size_t len, long ram_mb) {
+    if (ram_mb <= 0)
+        snprintf(buf, len, "-");
+    else if (ram_mb >= 1024)
+        snprintf(buf, len, "%.1f GiB", ram_mb / 1024.0);
+    else
+        snprintf(buf, len, "%.1f MiB", (double)ram_mb);
 }
 
 static int tui_list_height(void) {
@@ -73,6 +94,7 @@ static void tui_resize(tui_state_t *s) {
     resizeterm(0, 0);
     tui_init_windows(s);
     tui_scroll_to_cursor(s);
+    tui_mark_all_dirty(s);
 }
 
 static void tui_cleanup_windows(tui_state_t *s) {
@@ -81,10 +103,24 @@ static void tui_cleanup_windows(tui_state_t *s) {
     if (s->win_status) { delwin(s->win_status); s->win_status = NULL; }
 }
 
+static int cmp_rows_ram(const void *a, const void *b) {
+    const tui_row_t *ra = a, *rb = b;
+    return (rb->proc->ram > ra->proc->ram) - (rb->proc->ram < ra->proc->ram);
+}
+
+static int cmp_rows_score(const void *a, const void *b) {
+    const tui_row_t *ra = a, *rb = b;
+    return rb->score - ra->score;
+}
+
+__attribute__((hot))
 static void tui_rebuild_rows(tui_state_t *s) {
     s->row_count = 0;
 
     for (int i = 0; i < s->proc_count && s->row_count < TUI_MAX_SELECT; ++i) {
+        if (i + 2 < s->proc_count)
+            PREFETCH(&s->procs[i + 2]);
+
         const process_info_t *p = &s->procs[i];
 
         if (s->query_len == 0) {
@@ -95,28 +131,27 @@ static void tui_rebuild_rows(tui_state_t *s) {
         int name_score = fuzzy_score(s->query, p->name,    FUZZY_CTX_NAME);
         int cmd_score  = fuzzy_score(s->query, p->cmdline, FUZZY_CTX_CMDLINE);
 
-        /* take best score — weighting is handled inside fuzzy_score */
         int score = -1;
-        if (name_score >= 0)     score = name_score;
+        if (name_score >= 0) score = name_score;
         else if (cmd_score >= 0) score = cmd_score;
 
-        if (score >= 0)
+        if (score >= 0) {
+            score = fuzzy_apply_proc_bonus(score, p);
             s->rows[s->row_count++] = (tui_row_t){ .proc = p, .score = score };
+        }
     }
 
-    /* sort by score descending — best matches float to top */
-    for (int i = 0; i < s->row_count - 1; ++i)
-        for (int j = i + 1; j < s->row_count; ++j)
-            if (s->rows[j].score > s->rows[i].score) {
-                tui_row_t tmp = s->rows[i];
-                s->rows[i] = s->rows[j];
-                s->rows[j] = tmp;
-            }
+    if (s->query_len == 0)
+        qsort(s->rows, s->row_count, sizeof(tui_row_t), cmp_rows_ram);
+    else
+        qsort(s->rows, s->row_count, sizeof(tui_row_t), cmp_rows_score);
 
     if (s->cursor >= s->row_count)
         s->cursor = s->row_count > 0 ? s->row_count - 1 : 0;
 
     tui_scroll_to_cursor(s);
+    s->dirty_list   = true;
+    s->dirty_status = true;
 }
 
 static void tui_render_query(tui_state_t *s) {
@@ -124,16 +159,16 @@ static void tui_render_query(tui_state_t *s) {
     werase(w);
 
     wattron(w, COLOR_PAIR(PAIR_QUERY) | A_BOLD);
-    mvwprintw(w, 0, 0, "Swordfish fuzzy process finder");
+    mvwaddstr(w, 0, 0, "Swordfish fuzzy process finder");
     wattroff(w, COLOR_PAIR(PAIR_QUERY) | A_BOLD);
 
-    mvwprintw(w, 1, 0, "  > ");
+    mvwaddstr(w, 1, 0, "  > ");
     wattron(w, COLOR_PAIR(PAIR_QUERY));
     waddstr(w, s->query);
     wattroff(w, COLOR_PAIR(PAIR_QUERY));
 
     wattron(w, A_DIM);
-    mvwprintw(w, 2, 0, "  Tab: select   Enter: confirm   Esc/q: cancel");
+    mvwaddstr(w, 2, 0, "  Tab: select   Enter: confirm   Esc/q: cancel");
     wattroff(w, A_DIM);
 
     wnoutrefresh(w);
@@ -144,19 +179,24 @@ static void tui_render_list(tui_state_t *s) {
     int height = tui_list_height();
     werase(w);
 
+    // header is constant — format once and reuse
+    static char header_buf[256] = {0};
+    if (!header_buf[0])
+        snprintf(header_buf, sizeof(header_buf), " %-*s %-*s %-*s %-*s %s",
+                 COL_PID_W,   "PID",
+                 COL_NAME_W,  "NAME",
+                 COL_USER_W,  "USER",
+                 COL_STATE_W, "STATE", "RAM");
+
     wattron(w, COLOR_PAIR(PAIR_HEADER) | A_BOLD);
-    mvwprintw(w, 0, 0, " %-*s %-*s %-*s %-*s %s",
-              COL_PID_W, "PID",
-              COL_NAME_W, "NAME",
-              COL_USER_W, "USER",
-              COL_STATE_W, "STATE", "RAM");
+    mvwaddstr(w, 0, 0, header_buf);
     int used = 1 + COL_PID_W + 1 + COL_NAME_W + 1 + COL_USER_W + 1 + COL_STATE_W + 1 + COL_RAM_W;
     for (int x = used; x < COLS; ++x) waddch(w, ' ');
     wattroff(w, COLOR_PAIR(PAIR_HEADER) | A_BOLD);
 
     if (s->row_count == 0) {
         wattron(w, A_DIM);
-        mvwprintw(w, height / 2, (COLS - 16) / 2, "no matches found");
+        mvwaddstr(w, height / 2, (COLS - 16) / 2, "no matches found");
         wattroff(w, A_DIM);
         wnoutrefresh(w);
         return;
@@ -167,38 +207,49 @@ static void tui_render_list(tui_state_t *s) {
         const tui_row_t *row = &s->rows[idx];
         const process_info_t *p = row->proc;
 
-        bool is_cursor = (idx == s->cursor);
+        bool is_cursor   = (idx == s->cursor);
         bool is_selected = s->selected[idx];
-        bool is_root = (strcmp(p->owner, "root") == 0);
-        int  row_y = i + 1;
+        bool is_root     = (strcmp(p->owner, "root") == 0);
+        int  row_y       = i + 1;
 
-        if (is_cursor) wattron(w, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
+        if (is_cursor)        wattron(w, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
         else if (is_selected) wattron(w, COLOR_PAIR(PAIR_SELECTED));
-        else wattron(w, COLOR_PAIR(PAIR_NORMAL));
+        else                  wattron(w, COLOR_PAIR(PAIR_NORMAL));
 
-        mvwprintw(w, row_y, 0, "%s", is_selected ? "  " : " ");
-        wprintw(w, "%-*d ", COL_PID_W, p->pid);
+        // sel marker + pid in one shot — skips the printf pipeline inside ncurses
+        char prefix[32];
+        int prefix_len = snprintf(prefix, sizeof(prefix), "%s%-*d ",
+                                  is_selected ? "  " : " ", COL_PID_W, p->pid);
+        mvwaddnstr(w, row_y, 0, prefix, prefix_len);
 
+        // name may need a separate color for root processes
+        char name_buf[COL_NAME_W + 2];
+        snprintf(name_buf, sizeof(name_buf), "%-*.*s ", COL_NAME_W, COL_NAME_W, p->name);
         if (is_root && !is_cursor) {
             wattroff(w, COLOR_PAIR(PAIR_NORMAL));
             wattron(w, COLOR_PAIR(PAIR_ROOT));
         }
-        wprintw(w, "%-*.*s ", COL_NAME_W, COL_NAME_W, p->name);
+        waddnstr(w, name_buf, COL_NAME_W + 1);
         if (is_root && !is_cursor) {
             wattroff(w, COLOR_PAIR(PAIR_ROOT));
             wattron(w, is_selected ? COLOR_PAIR(PAIR_SELECTED) : COLOR_PAIR(PAIR_NORMAL));
         }
 
-        wprintw(w, "%-*.*s ", COL_USER_W, COL_USER_W, p->owner);
-        wprintw(w, "%-*c ", COL_STATE_W, p->status.state);
-        if (p->ram > 0) wprintw(w, "%ldMB", p->ram);
-        else wprintw(w, "  -  ");
+        // user + state + ram in one shot
+        char ram_buf[16];
+        fmt_ram(ram_buf, sizeof(ram_buf), p->ram);
+        char suffix[64];
+        int suffix_len = snprintf(suffix, sizeof(suffix), "%-*.*s %-*c %-*.*s",
+                                  COL_USER_W,  COL_USER_W,  p->owner,
+                                  COL_STATE_W, p->status.state,
+                                  COL_RAM_W,   COL_RAM_W,   ram_buf);
+        waddnstr(w, suffix, suffix_len);
 
         wclrtoeol(w);
 
-        if (is_cursor) wattroff(w, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
+        if (is_cursor)        wattroff(w, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
         else if (is_selected) wattroff(w, COLOR_PAIR(PAIR_SELECTED));
-        else wattroff(w, COLOR_PAIR(PAIR_NORMAL));
+        else                  wattroff(w, COLOR_PAIR(PAIR_NORMAL));
     }
 
     if (s->row_count > height) {
@@ -243,19 +294,20 @@ static void tui_render_confirm(tui_state_t *s) {
 
     WINDOW *popup = newwin(w_height, w_width, w_y, w_x);
 
-    wattron(popup, COLOR_PAIR(PAIR_HEADER) | A_BOLD);
+    wattron(popup, A_BOLD);
     box(popup, 0, 0);
+    wattroff(popup, A_BOLD);
 
     mvwprintw(popup, 1, 2, "Send signal to %d process%s?", n, n == 1 ? "" : "es");
-    mvwprintw(popup, 3, 2, "[y] Confirm    [n / Esc] Cancel");
-
-    wattroff(popup, COLOR_PAIR(PAIR_HEADER) | A_BOLD);
+    wattron(popup, A_DIM);
+    mvwaddstr(popup, 3, 2, "[y] Confirm    [n / Esc] Cancel");
+    wattroff(popup, A_DIM);
 
     wnoutrefresh(popup);
     doupdate();
 
-    /* block for a single keypress here — no need to re-enter the main loop */
     keypad(popup, TRUE);
+    set_escdelay(25);
     int ch = wgetch(popup);
     if (ch == 'y' || ch == 'Y')
         s->confirmed  = true;
@@ -264,14 +316,25 @@ static void tui_render_confirm(tui_state_t *s) {
 
     delwin(popup);
 
-    /* force a full redraw to clear the popup */
+    /* force immediate redraw so the popup doesn't ghost until next keypress */
     clearok(curscr, TRUE);
-}
-
-static void tui_render(tui_state_t *s) {
+    tui_mark_all_dirty(s);
     tui_render_query(s);
     tui_render_list(s);
     tui_render_status(s);
+    doupdate();
+}
+
+static void tui_mark_all_dirty(tui_state_t *s) {
+    s->dirty_query  = true;
+    s->dirty_list   = true;
+    s->dirty_status = true;
+}
+
+static void tui_render(tui_state_t *s) {
+    if (s->dirty_query)  { tui_render_query(s);  s->dirty_query  = false; }
+    if (s->dirty_list)   { tui_render_list(s);   s->dirty_list   = false; }
+    if (s->dirty_status) { tui_render_status(s); s->dirty_status = false; }
     doupdate();
 
     if (s->confirming)
@@ -283,6 +346,7 @@ static void tui_query_insert(tui_state_t *s, char c) {
         return;
     s->query[s->query_len++] = c;
     s->query[s->query_len] = '\0';
+    s->dirty_query = true;
     tui_rebuild_rows(s);
 }
 
@@ -290,6 +354,7 @@ static void tui_query_backspace(tui_state_t *s) {
     if (s->query_len == 0)
         return;
     s->query[--s->query_len] = '\0';
+    s->dirty_query = true;
     tui_rebuild_rows(s);
 }
 
@@ -298,6 +363,7 @@ static void tui_cursor_move(tui_state_t *s, int delta) {
     if (s->cursor < 0) s->cursor = 0;
     if (s->cursor >= s->row_count) s->cursor = s->row_count > 0 ? s->row_count - 1 : 0;
     tui_scroll_to_cursor(s);
+    s->dirty_list = true;
 }
 
 static void tui_scroll_to_cursor(tui_state_t *s) {
@@ -322,21 +388,29 @@ static void tui_handle_input(tui_state_t *s, int ch) {
         s->cancelled = true;
         break;
 
-    case KEY_UP: tui_cursor_move(s, -1); break;
-    case KEY_DOWN: tui_cursor_move(s, +1); break;
+    case KEY_UP:    tui_cursor_move(s, -1); break;
+    case KEY_DOWN:  tui_cursor_move(s, +1); break;
     case KEY_PPAGE: tui_cursor_move(s, -tui_list_height()); break;
     case KEY_NPAGE: tui_cursor_move(s, +tui_list_height()); break;
-    case KEY_HOME: s->cursor = 0; tui_scroll_to_cursor(s); break;
-    case KEY_END: s->cursor = s->row_count > 0 ? s->row_count - 1 : 0; tui_scroll_to_cursor(s); break;
+    case KEY_HOME:  s->cursor = 0; tui_scroll_to_cursor(s); s->dirty_list = true; break;
+    case KEY_END:   s->cursor = s->row_count > 0 ? s->row_count - 1 : 0; tui_scroll_to_cursor(s); s->dirty_list = true; break;
 
     case '\t':
-        if (s->row_count > 0)
+        if (s->row_count > 0) {
             s->selected[s->cursor] = !s->selected[s->cursor];
+            s->dirty_list   = true;
+            s->dirty_status = true;
+        }
         break;
+
+    case 4:  tui_cursor_move(s, +tui_list_height() / 2); break; // Ctrl-D
+    case 21: tui_cursor_move(s, -tui_list_height() / 2); break; // Ctrl-U
 
     case 1: // Ctrl-A
         for (int i = 0; i < s->row_count; ++i)
             s->selected[i] = true;
+        s->dirty_list   = true;
+        s->dirty_status = true;
         break;
 
     case KEY_RESIZE:
@@ -375,6 +449,7 @@ tui_result_t tui_run(const swordfish_args_t *args, const process_info_t *procs, 
 
     tui_init_windows(&s);
     tui_rebuild_rows(&s);
+    tui_mark_all_dirty(&s);
 
     (void)args;
 
