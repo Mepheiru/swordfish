@@ -64,6 +64,7 @@ typedef struct {
     unsigned int hide_root       : 1;
     unsigned int dry_run         : 1;
     unsigned int wait_for_death  : 1;
+    unsigned int kill_after_select : 1;
 } swordfish_args_t;
 
 int parse_args(int *argc, char **argv, swordfish_args_t *args);

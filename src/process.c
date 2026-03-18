@@ -18,6 +18,7 @@
 #include "hooks.h"
 #include "main.h"
 #include "args.h"
+#include "tui.h"
 
 /* Check if a directory name is a valid process directory */
 static bool is_proc_dir(const char *name) {
@@ -222,6 +223,9 @@ static void free_compiled_patterns(compiled_pattern_t *compiled, int count) {
 /* Check if a process matches the given REGEX patterns */
 static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
                           const swordfish_args_t *args, compiled_pattern_t *compiled) {
+    /* no patterns means match everything — used by -W with no pattern */
+    if (plist->pattern_count == 0)
+        return true;
     // Exclude patterns (same as before)
     if (args->exclude_patterns && args->exclude_count > 0) {
         char name_lc[256], cmdline_lc[256];
@@ -679,6 +683,17 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
         if (matched > 0) {
             if (args->top_only) {
                 selected[count++] = 0;
+            } else if (args->operation == SWOP_WATCH) {
+                tui_result_t tui = tui_run(args, matches, matched);
+                /* map returned PIDs back to indices in matches[] */
+                for (int i = 0; i < tui.count; ++i) {
+                    for (int j = 0; j < matched; ++j) {
+                        if (matches[j].pid == tui.selected_pids[i]) {
+                            selected[count++] = j;
+                            break;
+                        }
+                    }
+                }
             } else if (args->operation == SWOP_SELECT && !args->auto_confirm) {
                 select_processes(matched, matches, selected, &count, args, args->sig);
             } else {

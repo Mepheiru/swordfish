@@ -9,6 +9,7 @@
 #include "help.h"
 #include "process.h"
 #include "args.h"
+#include "tui.h"
 
 /* Generate shell completions for fish */
 void generate_fish_completions(const char *prog, const char *file_path) {

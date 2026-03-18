@@ -323,8 +323,10 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
     if (args->operation != SWOP_KILL)
         args->sig = SIGTERM;
 
-    /* no pattern and no pidfile means nothing to match against */
-    if (args->pattern_start_idx >= local_argc && !args->pidfile) {
+    /* no pattern and no pidfile means nothing to match against —
+       except -W which opens the TUI showing all processes */
+    if (args->pattern_start_idx >= local_argc && !args->pidfile
+        && args->operation != SWOP_WATCH) {
         ERROR("Missing process name pattern(s)");
         return 1;
     }

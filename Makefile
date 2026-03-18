@@ -9,7 +9,7 @@
 CC ?= gcc
 CFLAGS_DEV ?= -Wall -Wextra -g -std=gnu11
 CFLAGS_REL ?= -Wall -Wextra -Werror -O3 -std=gnu11
-LDFLAGS ?= 
+LDFLAGS ?= -lncurses 
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
@@ -17,8 +17,8 @@ BINDIR ?= $(PREFIX)/bin
 DEV_BUILDDIR = build
 REL_BUILDDIR = build/release
 
-SRC = src/main.c src/args.c src/process.c src/hooks.c src/help.c
-HEADERS = src/args.h src/process.h src/main.h src/hooks.h src/help.h
+SRC = src/main.c src/args.c src/process.c src/hooks.c src/help.c src/tui.c src/fuzzy.c
+HEADERS = src/args.h src/process.h src/main.h src/hooks.h src/help.h src/tui.h src/fuzzy.h
 
 OBJ_DEV = $(SRC:src/%.c=$(DEV_BUILDDIR)/%.o)
 OBJ_REL = $(SRC:src/%.c=$(REL_BUILDDIR)/%.o)
