@@ -30,7 +30,9 @@ typedef struct {
     tui_row_t rows[TUI_MAX_SELECT];
     int row_count;
 
-    bool selected[TUI_MAX_SELECT];
+    pid_t selected_pids_set[TUI_MAX_SELECT];
+    int   selected_count;
+
     int cursor;
     int scroll;
 

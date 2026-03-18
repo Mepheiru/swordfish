@@ -1,22 +1,38 @@
 # Fihsy! The default swordfish theme
 
-normal_fg    = white
-normal_bg    = default
-highlight_fg = black
-highlight_bg = cyan
-selected_fg  = green
-selected_bg  = default
-query_fg     = cyan
-query_bg     = default
-header_fg    = black
-header_bg    = white
-status_fg    = black
-status_bg    = white
-root_fg      = yellow
-root_bg      = default
-dim_fg       = white
-dim_bg       = default
-title_fg     = cyan
-title_bg     = default
-popup_fg     = white
-popup_bg     = default
+normal_text    = #c5c8c6
+normal_bg      = #181818
+
+highlight_text = black
+highlight_bg   = cyan
+
+selected_text  = green
+selected_bg    = default
+
+query_text     = cyan
+query_bg       = default
+
+header_text    = black
+header_bg      = white
+
+status_text    = black
+status_bg      = white
+
+root_text            = yellow
+root_bg              = default
+root_selection_text  = yellow
+root_selection_bg    = default
+
+dim_text       = #8a8f99
+dim_bg         = default
+
+title_text     = cyan
+title_bg       = default
+
+popup_text     = white
+popup_bg       = default
+
+pid_text       = #8a8f99
+user_text      = white
+state_text     = white
+ram_text       = white

@@ -11,10 +11,11 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 - Write "program.md". It will layout how the program runs and the purpose of each file. Write AFTER the main function is reorganized!!!
 - Improve error handling greatly.
 - -F need polish still
+- Color themes need to be able to be imported externaly. Config file must be completed before then
+- Config file support for default flags and settings.
 
 ## Features and Tweaks
 
-- Config file support for default flags and settings.
 - Improved piping support for safer read-only mode and to help other programs understand the swordfish output.
 - Additional scripting hooks.
 - Process tree support.
@@ -30,7 +31,6 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 - Process ancestry. Show the full parent chain, not just PPID.
 - Detect duplicate processes. Warn when multiple instances of something that should be a singleton are running.
 - Batch operations. Kill all processes over X MB RAM, kill all zombies, kill everything owned by a user.
-- Color themes!!!
 - Custom output format strings. `swordfish --format "%pid %name %ram" discord` like ps's `-o`.
 - Diff mode. Show what processes appeared or disappeared between two runs.
 - Protected process list. Config file of processes swordfish will never kill even with `-y`.
