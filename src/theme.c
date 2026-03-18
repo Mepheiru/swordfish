@@ -5,11 +5,13 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-// embedded theme data — injected by ld -r -b binary at build time
+// theme data
 extern const char _binary_themes_fihsy_swt_start[];
 extern const char _binary_themes_fihsy_swt_end[];
 extern const char _binary_themes_nord_swt_start[];
 extern const char _binary_themes_nord_swt_end[];
+extern const char _binary_themes_gruvbox_swt_start[];
+extern const char _binary_themes_gruvbox_swt_end[];
 
 typedef struct {
     const char *name;
@@ -18,12 +20,13 @@ typedef struct {
 } theme_entry_t;
 
 static const theme_entry_t theme_table[] = {
-    { "default", _binary_themes_fihsy_swt_start, _binary_themes_fihsy_swt_end },
-    { "nord",    _binary_themes_nord_swt_start,  _binary_themes_nord_swt_end  },
+    { "default", _binary_themes_fihsy_swt_start,   _binary_themes_fihsy_swt_end   },
+    { "nord",    _binary_themes_nord_swt_start,     _binary_themes_nord_swt_end    },
+    { "gruvbox", _binary_themes_gruvbox_swt_start,  _binary_themes_gruvbox_swt_end },
     { NULL, NULL, NULL }
 };
 
-// custom color slots for hex values — allocated from slot 16 upward
+// custom color slots for hex values allocated from slot 16 upward
 #define MAX_CUSTOM_COLORS 64
 static int custom_color_count = 0;
 static struct { short idx; short r, g, b; } custom_colors[MAX_CUSTOM_COLORS];
@@ -33,7 +36,6 @@ static struct { short idx; short r, g, b; } custom_colors[MAX_CUSTOM_COLORS];
 static short alloc_hex_color(const char *hex) {
     if (hex[0] != '#' || strlen(hex) != 7) return -1;
 
-    // parse each channel
     char rs[3] = { hex[1], hex[2], '\0' };
     char gs[3] = { hex[3], hex[4], '\0' };
     char bs[3] = { hex[5], hex[6], '\0' };
@@ -126,6 +128,10 @@ static void theme_parse(const char *data, size_t len, sw_theme_t *out) {
         else if (strcmp(key, "root_bg")      == 0) out->root_bg      = color;
         else if (strcmp(key, "dim_fg")       == 0) out->dim_fg       = color;
         else if (strcmp(key, "dim_bg")       == 0) out->dim_bg       = color;
+        else if (strcmp(key, "title_fg")     == 0) out->title_fg     = color;
+        else if (strcmp(key, "title_bg")     == 0) out->title_bg     = color;
+        else if (strcmp(key, "popup_fg")     == 0) out->popup_fg     = color;
+        else if (strcmp(key, "popup_bg")     == 0) out->popup_bg     = color;
 
         p = line_end + 1;
     }

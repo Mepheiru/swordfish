@@ -1,0 +1,33 @@
+# gruvbox theme for swordfish
+# based on gruvbox dark medium by morhetz
+# https://github.com/morhetz/gruvbox
+
+normal_fg    = #ebdbb2
+normal_bg    = #282828
+
+highlight_fg = #282828
+highlight_bg = #d79921
+
+selected_fg  = #b8bb26
+selected_bg  = #282828
+
+query_fg     = #83a598
+query_bg     = #282828
+
+header_fg    = #282828
+header_bg    = #a89984
+
+status_fg    = #ebdbb2
+status_bg    = #504945
+
+root_fg      = #fb4934
+root_bg      = #282828
+
+dim_fg       = #928374
+dim_bg       = #282828
+
+title_fg     = #fabd2f
+title_bg     = #282828
+
+popup_fg     = #ebdbb2
+popup_bg     = #3c3836

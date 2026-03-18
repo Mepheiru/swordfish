@@ -26,14 +26,18 @@
 #define COL_STATE_W 6
 #define COL_RAM_W   10
 
-#define PAIR_NORMAL    1
-#define PAIR_HIGHLIGHT 2
-#define PAIR_SELECTED  3
-#define PAIR_QUERY     4
-#define PAIR_HEADER    5
-#define PAIR_STATUS    6
-#define PAIR_ROOT      7
-#define PAIR_DIM       8
+#define PAIR_NORMAL       1
+#define PAIR_HIGHLIGHT    2
+#define PAIR_SELECTED     3
+#define PAIR_QUERY        4
+#define PAIR_HEADER       5
+#define PAIR_STATUS       6
+#define PAIR_DIM          7
+#define PAIR_TITLE        8
+#define PAIR_POPUP        9
+// root pairs bake the correct bg in so they work on any row state
+#define PAIR_ROOT_NORMAL   10
+#define PAIR_ROOT_SELECTED 11
 
 static void tui_apply_theme(tui_state_t *s, const char *name);
 static void tui_init_colors(const sw_theme_t *t);
@@ -62,14 +66,19 @@ static void tui_init_colors(const sw_theme_t *t) {
     start_color();
     use_default_colors();
     theme_init_custom_colors();
-    init_pair(PAIR_NORMAL,    t->normal_fg,    t->normal_bg);
-    init_pair(PAIR_HIGHLIGHT, t->highlight_fg, t->highlight_bg);
-    init_pair(PAIR_SELECTED,  t->selected_fg,  t->selected_bg);
-    init_pair(PAIR_QUERY,     t->query_fg,     t->query_bg);
-    init_pair(PAIR_HEADER,    t->header_fg,    t->header_bg);
-    init_pair(PAIR_STATUS,    t->status_fg,    t->status_bg);
-    init_pair(PAIR_ROOT,      t->root_fg,      t->root_bg);
-    init_pair(PAIR_DIM,       t->dim_fg,       t->dim_bg);
+    init_pair(PAIR_NORMAL,        t->normal_fg,    t->normal_bg);
+    init_pair(PAIR_HIGHLIGHT,     t->highlight_fg, t->highlight_bg);
+    init_pair(PAIR_SELECTED,      t->selected_fg,  t->selected_bg);
+    init_pair(PAIR_QUERY,         t->query_fg,     t->query_bg);
+    init_pair(PAIR_HEADER,        t->header_fg,    t->header_bg);
+    init_pair(PAIR_STATUS,        t->status_fg,    t->status_bg);
+    init_pair(PAIR_DIM,           t->dim_fg,       t->dim_bg);
+    init_pair(PAIR_TITLE,         t->title_fg,     t->title_bg);
+    init_pair(PAIR_POPUP,         t->popup_fg,     t->popup_bg);
+    // root fg baked against each possible row background so switching pairs
+    // mid-row doesn't clobber the row's background color
+    init_pair(PAIR_ROOT_NORMAL,   t->root_fg,      t->normal_bg);
+    init_pair(PAIR_ROOT_SELECTED, t->root_fg,      t->selected_bg);
 }
 
 static void tui_apply_theme(tui_state_t *s, const char *name) {
@@ -180,9 +189,9 @@ static void tui_render_query(tui_state_t *s) {
     WINDOW *w = s->win_query;
     werase(w);
 
-    wattron(w, COLOR_PAIR(PAIR_QUERY) | A_BOLD);
+    wattron(w, COLOR_PAIR(PAIR_TITLE) | A_BOLD);
     mvwaddstr(w, 0, 0, "Swordfish fuzzy process finder");
-    wattroff(w, COLOR_PAIR(PAIR_QUERY) | A_BOLD);
+    wattroff(w, COLOR_PAIR(PAIR_TITLE) | A_BOLD);
 
     mvwaddstr(w, 1, 0, "  > ");
     wattron(w, COLOR_PAIR(PAIR_QUERY));
@@ -190,7 +199,7 @@ static void tui_render_query(tui_state_t *s) {
     wattroff(w, COLOR_PAIR(PAIR_QUERY));
 
     wattron(w, A_DIM);
-    mvwaddstr(w, 2, 0, "  Tab: select   Enter: confirm   t: themes   Esc/q: cancel");
+    mvwaddstr(w, 2, 0, "  Tab: select   Enter: confirm   Ctrl-T: themes   Esc/q: cancel");
     wattroff(w, A_DIM);
 
     wnoutrefresh(w);
@@ -244,18 +253,15 @@ static void tui_render_list(tui_state_t *s) {
                                   is_selected ? "  " : " ", COL_PID_W, p->pid);
         mvwaddnstr(w, row_y, 0, prefix, prefix_len);
 
-        // name may need a separate color for root processes
+        // root name uses a pair that has root_fg baked against the correct bg
+        // so switching pairs mid-row never clobbers the row background
         char name_buf[COL_NAME_W + 2];
         snprintf(name_buf, sizeof(name_buf), "%-*.*s ", COL_NAME_W, COL_NAME_W, p->name);
-        if (is_root && !is_cursor) {
-            wattroff(w, COLOR_PAIR(PAIR_NORMAL));
-            wattron(w, COLOR_PAIR(PAIR_ROOT));
-        }
+        if (is_root && !is_cursor && !is_selected)
+            wattron(w, COLOR_PAIR(PAIR_ROOT_NORMAL));
         waddnstr(w, name_buf, COL_NAME_W + 1);
-        if (is_root && !is_cursor) {
-            wattroff(w, COLOR_PAIR(PAIR_ROOT));
-            wattron(w, is_selected ? COLOR_PAIR(PAIR_SELECTED) : COLOR_PAIR(PAIR_NORMAL));
-        }
+        if (is_root && !is_cursor && !is_selected)
+            wattron(w, COLOR_PAIR(PAIR_NORMAL));
 
         // user + state + ram in one shot
         char ram_buf[16];
@@ -313,18 +319,22 @@ static void tui_render_confirm(tui_state_t *s) {
     const int w_width  = 44;
     const int w_height = 5;
     int w_y = (LINES - w_height) / 2;
-    int w_x = (COLS - w_width) / 2;
+    int w_x = (COLS  - w_width)  / 2;
 
     WINDOW *popup = newwin(w_height, w_width, w_y, w_x);
+    wbkgd(popup, COLOR_PAIR(PAIR_POPUP));
 
-    wattron(popup, A_BOLD);
+    wattron(popup, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
     box(popup, 0, 0);
-    wattroff(popup, A_BOLD);
+    wattroff(popup, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
 
+    wattron(popup, COLOR_PAIR(PAIR_POPUP));
     mvwprintw(popup, 1, 2, "Send signal to %d process%s?", n, n == 1 ? "" : "es");
-    wattron(popup, A_DIM);
+    wattroff(popup, COLOR_PAIR(PAIR_POPUP));
+
+    wattron(popup, COLOR_PAIR(PAIR_POPUP) | A_DIM);
     mvwaddstr(popup, 3, 2, "[y] Confirm    [n / Esc] Cancel");
-    wattroff(popup, A_DIM);
+    wattroff(popup, COLOR_PAIR(PAIR_POPUP) | A_DIM);
 
     wnoutrefresh(popup);
     doupdate();
@@ -352,40 +362,41 @@ static void tui_render_theme_picker(tui_state_t *s) {
     int count = theme_count();
 
     const int w_width  = 36;
-    const int w_height = count + 6; // title + gap + entries + gap + hint + testing note
+    const int w_height = count + 6;
     int w_y = (LINES - w_height) / 2;
     int w_x = (COLS  - w_width)  / 2;
 
     WINDOW *popup = newwin(w_height, w_width, w_y, w_x);
+    wbkgd(popup, COLOR_PAIR(PAIR_POPUP));
     keypad(popup, TRUE);
 
     while (s->picking_theme) {
         werase(popup);
-        wattron(popup, A_BOLD);
+        wattron(popup, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
         box(popup, 0, 0);
-        mvwaddstr(popup, 0, (w_width - 6) / 2, " Theme ");
-        wattroff(popup, A_BOLD);
+        mvwaddstr(popup, 0, (w_width - 7) / 2, " Theme ");
+        wattroff(popup, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
 
         for (int i = 0; i < count; i++) {
             const char *name = theme_name_at(i);
-            bool is_active  = (strcmp(name, s->active_theme) == 0);
-            bool is_cursor  = (i == s->theme_picker_cursor);
+            bool is_active = (strcmp(name, s->active_theme) == 0);
+            bool is_cur    = (i == s->theme_picker_cursor);
 
-            if (is_cursor) wattron(popup, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
-            else           wattron(popup, COLOR_PAIR(PAIR_NORMAL));
+            if (is_cur) wattron(popup, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
+            else        wattron(popup, COLOR_PAIR(PAIR_POPUP));
 
             mvwprintw(popup, i + 1, 2, " %-*s%s",
                       w_width - 7, name, is_active ? " *" : "  ");
 
-            if (is_cursor) wattroff(popup, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
-            else           wattroff(popup, COLOR_PAIR(PAIR_NORMAL));
+            if (is_cur) wattroff(popup, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
+            else        wattroff(popup, COLOR_PAIR(PAIR_POPUP));
         }
 
-        wattron(popup, A_DIM);
+        wattron(popup, COLOR_PAIR(PAIR_POPUP) | A_DIM);
         mvwaddstr(popup, count + 2, 2, "Enter: apply   Esc: close");
         // theme picker is experimental — warn the user
         mvwaddstr(popup, count + 3, 2, "* theme picker is in testing");
-        wattroff(popup, A_DIM);
+        wattroff(popup, COLOR_PAIR(PAIR_POPUP) | A_DIM);
 
         wnoutrefresh(popup);
         doupdate();
@@ -410,7 +421,7 @@ static void tui_render_theme_picker(tui_state_t *s) {
             s->picking_theme = false;
             break;
         case KEY_RESIZE:
-            s->picking_theme = false; // close picker, resize will handle redraw
+            s->picking_theme = false;
             tui_resize(s);
             break;
         }
@@ -493,7 +504,7 @@ static void tui_handle_input(tui_state_t *s, int ch) {
         s->cancelled = true;
         break;
 
-    case 't':
+    case 20: // Ctrl-T
         s->picking_theme = true;
         break;
 

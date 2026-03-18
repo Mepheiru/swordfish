@@ -16,3 +16,7 @@ root_fg      = yellow
 root_bg      = default
 dim_fg       = white
 dim_bg       = default
+title_fg     = cyan
+title_bg     = default
+popup_fg     = white
+popup_bg     = default
