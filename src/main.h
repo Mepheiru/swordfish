@@ -26,6 +26,4 @@
 #define INFO(msg, ...) \
     printf(COLOR_YELLOW "INFO:" COLOR_RESET " " msg "\n", ##__VA_ARGS__)
 
-void generate_fish_completions(const char *prog, const char *file_path);
-void generate_bash_completions(const char *prog, const char *file_path);
-void generate_zsh_completions(const char *prog, const char *file_path);
+

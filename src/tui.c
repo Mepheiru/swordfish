@@ -1,6 +1,7 @@
 #include "tui.h"
 #include "fuzzy.h"
 #include "main.h"
+#include "theme.h"
 
 // must be a macro — inline asm operand constraints require an addressable lvalue,
 // which a function parameter doesn't guarantee at every call site
@@ -34,7 +35,8 @@
 #define PAIR_ROOT      7
 #define PAIR_DIM       8
 
-static void tui_init_colors(void);
+static void tui_apply_theme(tui_state_t *s, const char *name);
+static void tui_init_colors(const sw_theme_t *t);
 static void tui_init_windows(tui_state_t *s);
 static void tui_resize(tui_state_t *s);
 static void tui_cleanup_windows(tui_state_t *s);
@@ -44,6 +46,7 @@ static void tui_render_query(tui_state_t *s);
 static void tui_render_list(tui_state_t *s);
 static void tui_render_status(tui_state_t *s);
 static void tui_render_confirm(tui_state_t *s);
+static void tui_render_theme_picker(tui_state_t *s);
 static void tui_handle_input(tui_state_t *s, int ch);
 static void tui_query_insert(tui_state_t *s, char c);
 static void tui_query_backspace(tui_state_t *s);
@@ -55,17 +58,32 @@ static int  cmp_rows_ram(const void *a, const void *b);
 static int  cmp_rows_score(const void *a, const void *b);
 static void tui_mark_all_dirty(tui_state_t *s);
 
-static void tui_init_colors(void) {
+static void tui_init_colors(const sw_theme_t *t) {
     start_color();
     use_default_colors();
-    init_pair(PAIR_NORMAL,    COLOR_WHITE,  -1);
-    init_pair(PAIR_HIGHLIGHT, COLOR_BLACK,  COLOR_CYAN);
-    init_pair(PAIR_SELECTED,  COLOR_GREEN,  -1);
-    init_pair(PAIR_QUERY,     COLOR_CYAN,   -1);
-    init_pair(PAIR_HEADER,    COLOR_BLACK,  COLOR_WHITE);
-    init_pair(PAIR_STATUS,    COLOR_BLACK,  COLOR_WHITE);
-    init_pair(PAIR_ROOT,      COLOR_YELLOW, -1);
-    init_pair(PAIR_DIM,       COLOR_WHITE,  -1);
+    theme_init_custom_colors();
+    init_pair(PAIR_NORMAL,    t->normal_fg,    t->normal_bg);
+    init_pair(PAIR_HIGHLIGHT, t->highlight_fg, t->highlight_bg);
+    init_pair(PAIR_SELECTED,  t->selected_fg,  t->selected_bg);
+    init_pair(PAIR_QUERY,     t->query_fg,     t->query_bg);
+    init_pair(PAIR_HEADER,    t->header_fg,    t->header_bg);
+    init_pair(PAIR_STATUS,    t->status_fg,    t->status_bg);
+    init_pair(PAIR_ROOT,      t->root_fg,      t->root_bg);
+    init_pair(PAIR_DIM,       t->dim_fg,       t->dim_bg);
+}
+
+static void tui_apply_theme(tui_state_t *s, const char *name) {
+    sw_theme_t theme;
+    theme_load(name, &theme);
+    tui_init_colors(&theme);
+    strncpy(s->active_theme, name ? name : "default", sizeof(s->active_theme) - 1);
+
+    // re-stamp backgrounds on all windows with the new color pairs
+    if (s->win_query)  wbkgd(s->win_query,  COLOR_PAIR(PAIR_NORMAL));
+    if (s->win_list)   wbkgd(s->win_list,   COLOR_PAIR(PAIR_NORMAL));
+    if (s->win_status) wbkgd(s->win_status, COLOR_PAIR(PAIR_STATUS));
+
+    tui_mark_all_dirty(s);
 }
 
 static void fmt_ram(char *buf, size_t len, long ram_mb) {
@@ -87,6 +105,10 @@ static void tui_init_windows(tui_state_t *s) {
     s->win_list   = newwin(list_h,        COLS, QUERY_HEIGHT, 0);
     s->win_status = newwin(STATUS_HEIGHT, COLS, LINES - STATUS_HEIGHT, 0);
     keypad(s->win_list, TRUE);
+
+    wbkgd(s->win_query,  COLOR_PAIR(PAIR_NORMAL));
+    wbkgd(s->win_list,   COLOR_PAIR(PAIR_NORMAL));
+    wbkgd(s->win_status, COLOR_PAIR(PAIR_STATUS));
 }
 
 static void tui_resize(tui_state_t *s) {
@@ -98,8 +120,8 @@ static void tui_resize(tui_state_t *s) {
 }
 
 static void tui_cleanup_windows(tui_state_t *s) {
-    if (s->win_query) { delwin(s->win_query); s->win_query = NULL; }
-    if (s->win_list) { delwin(s->win_list); s->win_list = NULL; }
+    if (s->win_query)  { delwin(s->win_query);  s->win_query  = NULL; }
+    if (s->win_list)   { delwin(s->win_list);   s->win_list   = NULL; }
     if (s->win_status) { delwin(s->win_status); s->win_status = NULL; }
 }
 
@@ -168,7 +190,7 @@ static void tui_render_query(tui_state_t *s) {
     wattroff(w, COLOR_PAIR(PAIR_QUERY));
 
     wattron(w, A_DIM);
-    mvwaddstr(w, 2, 0, "  Tab: select   Enter: confirm   Esc/q: cancel");
+    mvwaddstr(w, 2, 0, "  Tab: select   Enter: confirm   t: themes   Esc/q: cancel");
     wattroff(w, A_DIM);
 
     wnoutrefresh(w);
@@ -274,7 +296,8 @@ static void tui_render_status(tui_state_t *s) {
         if (s->selected[i]) sel_count++;
 
     wattron(w, COLOR_PAIR(PAIR_STATUS) | A_BOLD);
-    mvwprintw(w, 0, 0, "  %d/%d processes  |  %d selected", s->row_count, s->proc_count, sel_count);
+    mvwprintw(w, 0, 0, "  %d/%d processes  |  %d selected  |  theme: %s",
+              s->row_count, s->proc_count, sel_count, s->active_theme);
     wclrtoeol(w);
     wattroff(w, COLOR_PAIR(PAIR_STATUS) | A_BOLD);
 
@@ -325,6 +348,85 @@ static void tui_render_confirm(tui_state_t *s) {
     doupdate();
 }
 
+static void tui_render_theme_picker(tui_state_t *s) {
+    int count = theme_count();
+
+    const int w_width  = 36;
+    const int w_height = count + 6; // title + gap + entries + gap + hint + testing note
+    int w_y = (LINES - w_height) / 2;
+    int w_x = (COLS  - w_width)  / 2;
+
+    WINDOW *popup = newwin(w_height, w_width, w_y, w_x);
+    keypad(popup, TRUE);
+
+    while (s->picking_theme) {
+        werase(popup);
+        wattron(popup, A_BOLD);
+        box(popup, 0, 0);
+        mvwaddstr(popup, 0, (w_width - 6) / 2, " Theme ");
+        wattroff(popup, A_BOLD);
+
+        for (int i = 0; i < count; i++) {
+            const char *name = theme_name_at(i);
+            bool is_active  = (strcmp(name, s->active_theme) == 0);
+            bool is_cursor  = (i == s->theme_picker_cursor);
+
+            if (is_cursor) wattron(popup, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
+            else           wattron(popup, COLOR_PAIR(PAIR_NORMAL));
+
+            mvwprintw(popup, i + 1, 2, " %-*s%s",
+                      w_width - 7, name, is_active ? " *" : "  ");
+
+            if (is_cursor) wattroff(popup, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
+            else           wattroff(popup, COLOR_PAIR(PAIR_NORMAL));
+        }
+
+        wattron(popup, A_DIM);
+        mvwaddstr(popup, count + 2, 2, "Enter: apply   Esc: close");
+        // theme picker is experimental — warn the user
+        mvwaddstr(popup, count + 3, 2, "* theme picker is in testing");
+        wattroff(popup, A_DIM);
+
+        wnoutrefresh(popup);
+        doupdate();
+
+        int ch = wgetch(popup);
+        switch (ch) {
+        case KEY_UP:
+            if (s->theme_picker_cursor > 0) s->theme_picker_cursor--;
+            break;
+        case KEY_DOWN:
+            if (s->theme_picker_cursor < count - 1) s->theme_picker_cursor++;
+            break;
+        case '\n':
+        case KEY_ENTER: {
+            const char *chosen = theme_name_at(s->theme_picker_cursor);
+            if (chosen) tui_apply_theme(s, chosen);
+            s->picking_theme = false;
+            break;
+        }
+        case 27: // Esc
+        case 'q':
+            s->picking_theme = false;
+            break;
+        case KEY_RESIZE:
+            s->picking_theme = false; // close picker, resize will handle redraw
+            tui_resize(s);
+            break;
+        }
+    }
+
+    delwin(popup);
+
+    /* force full redraw after popup closes */
+    clearok(curscr, TRUE);
+    tui_mark_all_dirty(s);
+    tui_render_query(s);
+    tui_render_list(s);
+    tui_render_status(s);
+    doupdate();
+}
+
 static void tui_mark_all_dirty(tui_state_t *s) {
     s->dirty_query  = true;
     s->dirty_list   = true;
@@ -339,6 +441,9 @@ static void tui_render(tui_state_t *s) {
 
     if (s->confirming)
         tui_render_confirm(s);
+
+    if (s->picking_theme)
+        tui_render_theme_picker(s);
 }
 
 static void tui_query_insert(tui_state_t *s, char c) {
@@ -386,6 +491,10 @@ static void tui_handle_input(tui_state_t *s, int ch) {
     case 27: // Esc
     case 'q':
         s->cancelled = true;
+        break;
+
+    case 't':
+        s->picking_theme = true;
         break;
 
     case KEY_UP:    tui_cursor_move(s, -1); break;
@@ -440,18 +549,21 @@ tui_result_t tui_run(const swordfish_args_t *args, const process_info_t *procs, 
     curs_set(0);
     set_escdelay(25);
 
-    if (has_colors())
-        tui_init_colors();
-
     tui_state_t s = {0};
     s.procs = procs;
     s.proc_count = count;
+    strncpy(s.active_theme, args->theme ? args->theme : "default",
+            sizeof(s.active_theme) - 1);
+
+    if (has_colors()) {
+        sw_theme_t theme;
+        theme_load(s.active_theme, &theme);
+        tui_init_colors(&theme);
+    }
 
     tui_init_windows(&s);
     tui_rebuild_rows(&s);
     tui_mark_all_dirty(&s);
-
-    (void)args;
 
     while (!s.confirmed && !s.cancelled) {
         tui_render(&s);

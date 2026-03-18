@@ -11,7 +11,6 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 - Write "program.md". It will layout how the program runs and the purpose of each file. Write AFTER the main function is reorganized!!!
 - Improve error handling greatly.
 - -F need polish still
-- Add impl tests to swordfish.
 
 ## Features and Tweaks
 
@@ -38,4 +37,4 @@ Stuff that needs to be done. This document also contains some potential ideas fo
 - Kill log. Append every signal sent to a log file with timestamp, PID, name, user.
 - Named filter profiles. `swordfish @cleanup` loads a saved filter set.
 - Environment variable support for default flags. `SWORDFISH_DEFAULT_FLAGS=-y`.
-- Resource budgets. `swordfish --budget ram=4GB` — if the sum of matched processes exceeds the budget, kill the biggest one.
+- Resource budgets. `swordfish --budget ram=4GB` if the sum of matched processes exceeds the budget, kill the biggest one.

@@ -1,0 +1,18 @@
+# Fihsy! The default swordfish theme
+
+normal_fg    = white
+normal_bg    = default
+highlight_fg = black
+highlight_bg = cyan
+selected_fg  = green
+selected_bg  = default
+query_fg     = cyan
+query_bg     = default
+header_fg    = black
+header_bg    = white
+status_fg    = black
+status_bg    = white
+root_fg      = yellow
+root_bg      = default
+dim_fg       = white
+dim_bg       = default

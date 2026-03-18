@@ -1,0 +1,19 @@
+# nord swordfish theme
+# approximated to ncurses 8 basic colors
+
+normal_fg    = white
+normal_bg    = default
+highlight_fg = black
+highlight_bg = blue
+selected_fg  = cyan
+selected_bg  = default
+query_fg     = blue
+query_bg     = default
+header_fg    = black
+header_bg    = cyan
+status_fg    = black
+status_bg    = cyan
+root_fg      = yellow
+root_bg      = default
+dim_fg       = white
+dim_bg       = default

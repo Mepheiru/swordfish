@@ -44,6 +44,10 @@ typedef struct {
     bool dirty_query;
     bool dirty_list;
     bool dirty_status;
+
+    bool picking_theme;
+    int  theme_picker_cursor;
+    char active_theme[64];
 } tui_state_t;
 
 tui_result_t tui_run(const swordfish_args_t *args,

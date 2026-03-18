@@ -19,22 +19,23 @@ typedef enum : uint8_t {
 
 /* Long opt identifiers */
 typedef enum {
-    LOPT_SORT        = 1000,
-    LOPT_HELP        = 1001,
-    LOPT_EXCLUDE     = 1002,
-    LOPT_PRE_HOOK    = 1003,
-    LOPT_POST_HOOK   = 1004,
+    LOPT_SORT = 1000,
+    LOPT_HELP = 1001,
+    LOPT_EXCLUDE = 1002,
+    LOPT_PRE_HOOK = 1003,
+    LOPT_POST_HOOK = 1004,
     LOPT_COMPLETIONS = 1005,
-    LOPT_VERSION     = 1006,
-    LOPT_MAN         = 1007,
-    LOPT_USER        = 1008,
-    LOPT_RETRY       = 1009,
-    LOPT_TIMEOUT     = 1010,
-    LOPT_FORMAT      = 1011,
-    LOPT_PARENT      = 1012,
-    LOPT_SESSION     = 1013,
-    LOPT_PIDFILE     = 1014,
-    LOPT_OUTPUT      = 1015,
+    LOPT_VERSION = 1006,
+    LOPT_MAN = 1007,
+    LOPT_USER = 1008,
+    LOPT_RETRY = 1009,
+    LOPT_TIMEOUT = 1010,
+    LOPT_FORMAT = 1011,
+    LOPT_PARENT = 1012,
+    LOPT_SESSION = 1013,
+    LOPT_PIDFILE = 1014,
+    LOPT_OUTPUT = 1015,
+    LOPT_THEME = 1016,
 } swordfish_lopt_t;
 
 /* Main arguments struct */
@@ -44,6 +45,7 @@ typedef struct {
     const char *format;
     const char *pidfile;
     const char *help_topic;
+    const char *theme;
     const char **exclude_patterns;
     int sig;
     int retry_time;

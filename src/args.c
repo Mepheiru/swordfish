@@ -38,6 +38,7 @@ static struct option long_opts[] = {
     {"parent",      required_argument, NULL, LOPT_PARENT},
     {"session",     required_argument, NULL, LOPT_SESSION},
     {"pidfile",     required_argument, NULL, LOPT_PIDFILE},
+    {"theme", required_argument, NULL, LOPT_THEME},
     {0, 0, 0, 0}
 };
 
@@ -90,6 +91,7 @@ static void init_args(swordfish_args_t *args) {
     args->wait_for_death    = 0;
     args->pre_hook[0]       = '\0';
     args->post_hook[0]      = '\0';
+    args->theme = NULL;
 }
 
 /* Extract signal embedded in -k<sig> and rewrite argv so getopt
@@ -301,6 +303,10 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
 
         case LOPT_PIDFILE:
             args->pidfile = optarg;
+            break;
+
+        case LOPT_THEME:
+            args->theme = optarg;
             break;
 
         default:
