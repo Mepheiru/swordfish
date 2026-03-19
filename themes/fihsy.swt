@@ -24,6 +24,7 @@ root_text           = yellow
 root_bg             = #181818
 root_selection_text = yellow
 root_selection_bg   = #181818
+root_highlight_text = #c5c8c6
 
 dim_text       = #8a8f99
 dim_bg         = #181818
