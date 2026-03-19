@@ -10,6 +10,7 @@
 #endif
 
 #include <curses.h>
+#include <signal.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -33,6 +34,7 @@
 #define PAIR_DIM 7
 #define PAIR_TITLE 8
 #define PAIR_POPUP 9
+#define PAIR_DIM_POPUP 16
 // root pairs bake the correct bg so switching mid-row doesn't clobber row bg
 #define PAIR_ROOT_NORMAL 10
 #define PAIR_ROOT_SELECTED 11
@@ -53,6 +55,7 @@ static void tui_render_query(tui_state_t *s);
 static void tui_render_list(tui_state_t *s);
 static void tui_render_status(tui_state_t *s);
 static void tui_render_confirm(tui_state_t *s);
+static void tui_render_action_prompt(tui_state_t *s);
 static void tui_render_theme_picker(tui_state_t *s);
 static void tui_handle_input(tui_state_t *s, int ch);
 static void tui_query_insert(tui_state_t *s, char c);
@@ -98,6 +101,9 @@ static void tui_init_colors(const sw_theme_t *t) {
     init_pair(PAIR_DIM, t->dim_text, t->dim_bg);
     init_pair(PAIR_TITLE, t->title_text, t->title_bg);
     init_pair(PAIR_POPUP, t->popup_text, t->popup_bg);
+    short dp_text = t->dim_popup_text ? t->dim_popup_text : t->dim_text;
+    short dp_bg   = t->dim_popup_bg   ? t->dim_popup_bg   : t->dim_bg;
+    init_pair(PAIR_DIM_POPUP, dp_text, dp_bg);
 
     init_pair(PAIR_ROOT_NORMAL, t->root_text, t->root_bg);
     init_pair(PAIR_ROOT_SELECTED, t->root_selection_text, t->root_selection_bg);
@@ -237,7 +243,6 @@ static void tui_render_list(tui_state_t *s) {
     int height = tui_list_height();
     werase(w);
 
-    // header is constant - format once and reuse
     static char header_buf[256] = {0};
     if (!header_buf[0])
         snprintf(header_buf, sizeof(header_buf), " %-*s %-*s %-*s %-*s %s",
@@ -286,7 +291,7 @@ static void tui_render_list(tui_state_t *s) {
         wattron(w, COLOR_PAIR(col ? PAIR_PID : pair_base) | bold);
         waddnstr(w, pid_buf, COL_PID_W + 1);
 
-        // process name - root gets its own pair on normal rows
+        // process name
         char name_buf[COL_NAME_W + 2];
         snprintf(name_buf, sizeof(name_buf), "%-*.*s ", COL_NAME_W, COL_NAME_W, p->name);
         int name_pair;
@@ -371,20 +376,26 @@ static void tui_render_confirm(tui_state_t *s) {
     mvwprintw(popup, 1, 2, "Send signal to %d process%s?", n, n == 1 ? "" : "es");
     wattroff(popup, COLOR_PAIR(PAIR_POPUP));
 
-    wattron(popup, COLOR_PAIR(PAIR_DIM) | A_DIM);
+    wattron(popup, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
     mvwaddstr(popup, 3, 2, "[y] Confirm    [n / Esc] Cancel");
-    wattroff(popup, COLOR_PAIR(PAIR_DIM) | A_DIM);
+    wattroff(popup, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
 
     wnoutrefresh(popup);
     doupdate();
 
     keypad(popup, TRUE);
     set_escdelay(25);
-    int ch = wgetch(popup);
-    if (ch == 'y' || ch == 'Y')
-        s->confirmed  = true;
-    else
-        s->confirming = false;
+    while (true) {
+        int ch = wgetch(popup);
+        if (ch == 'y' || ch == 'Y') {
+            s->confirmed = true;
+            break;
+        } else if (ch == 'n' || ch == 'N' || ch == 27) {
+            s->confirming = false;
+            break;
+        }
+        // anything else including Enter is a no-op
+    }
 
     delwin(popup);
 
@@ -395,6 +406,112 @@ static void tui_render_confirm(tui_state_t *s) {
     tui_render_list(s);
     tui_render_status(s);
     doupdate();
+}
+
+static void tui_render_action_prompt(tui_state_t *s) {
+    const int w_width = 44;
+    const int w_height = 7;
+    int w_y = (LINES - w_height) / 2;
+    int w_x = (COLS - w_width) / 2;
+
+    WINDOW *popup = newwin(w_height, w_width, w_y, w_x);
+    wbkgd(popup, COLOR_PAIR(PAIR_POPUP));
+    keypad(popup, TRUE);
+
+    int n = s->selected_count > 0 ? s->selected_count : (s->row_count > 0 ? 1 : 0);
+
+    while (s->prompting_action) {
+        werase(popup);
+        wattron(popup, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
+        box(popup, 0, 0);
+        wattroff(popup, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
+
+        wattron(popup, COLOR_PAIR(PAIR_POPUP));
+        mvwprintw(popup, 1, 2, "Action for %d process%s:", n, n == 1 ? "" : "es");
+        wattroff(popup, COLOR_PAIR(PAIR_POPUP));
+
+        wattron(popup, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
+        mvwaddstr(popup, 2, 2, "k=TERM  k9=KILL  kHUP  kUSR1 ...");
+        wattroff(popup, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
+
+        mvwaddstr(popup, 4, 2, "> ");
+        wattron(popup, COLOR_PAIR(PAIR_QUERY));
+        waddnstr(popup, s->action_buf, s->action_len);
+        wattroff(popup, COLOR_PAIR(PAIR_QUERY));
+
+        wattron(popup, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
+        mvwaddstr(popup, 5, 2, "Enter: confirm   Esc: cancel");
+        wattroff(popup, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
+
+        wnoutrefresh(popup);
+        doupdate();
+
+        int ch = wgetch(popup);
+        switch (ch) {
+        case '\n':
+        case KEY_ENTER: {
+            if (s->action_len == 0 || s->action_buf[0] != 'k') {
+                s->action_len = 0;
+                s->action_buf[0] = '\0';
+                break;
+            }
+            const char *sig_str = s->action_buf + 1;
+            int sig;
+            if (*sig_str == '\0') {
+                sig = SIGTERM;
+            } else {
+                sig = get_signal(sig_str);
+                if (sig < 0) {
+                    s->action_len = 0;
+                    s->action_buf[0] = '\0';
+                    break;
+                }
+            }
+            s->pending_sig = sig;
+            s->prompting_action = false;
+            s->confirming = true;
+            break;
+        }
+        case 27: // Esc
+            s->action_len = 0;
+            s->action_buf[0] = '\0';
+            s->prompting_action = false;
+            break;
+        case KEY_BACKSPACE:
+        case 127:
+        case '\b':
+            if (s->action_len > 0)
+                s->action_buf[--s->action_len] = '\0';
+            break;
+        case KEY_UP:
+        case KEY_DOWN:
+        case KEY_LEFT:
+        case KEY_RIGHT:
+        case KEY_PPAGE:
+        case KEY_NPAGE:
+        case KEY_HOME:
+        case KEY_END:
+            break;
+        default:
+            if (ch >= 32 && ch < 127 && s->action_len < (int)sizeof(s->action_buf) - 1) {
+                s->action_buf[s->action_len++] = (char)ch;
+                s->action_buf[s->action_len] = '\0';
+            }
+            break;
+        }
+    }
+
+    delwin(popup);
+
+    clearok(curscr, TRUE);
+    tui_mark_all_dirty(s);
+    tui_render_query(s);
+    tui_render_list(s);
+    tui_render_status(s);
+    doupdate();
+
+    if (s->confirming)
+        tui_render_confirm(s);
 }
 
 static void tui_render_theme_picker(tui_state_t *s) {
@@ -441,10 +558,10 @@ static void tui_render_theme_picker(tui_state_t *s) {
             else wattroff(popup, COLOR_PAIR(PAIR_POPUP));
         }
 
-        wattron(popup, COLOR_PAIR(PAIR_DIM) | A_DIM);
+        wattron(popup, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
         mvwaddstr(popup, count + 2, 2, "Enter: apply   Esc: cancel");
         mvwaddstr(popup, count + 3, 2, "* theme picker is in testing");
-        wattroff(popup, COLOR_PAIR(PAIR_DIM) | A_DIM);
+        wattroff(popup, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
 
         wnoutrefresh(popup);
         doupdate();
@@ -505,6 +622,9 @@ static void tui_render(tui_state_t *s) {
     if (s->confirming)
         tui_render_confirm(s);
 
+    if (s->prompting_action)
+        tui_render_action_prompt(s);
+
     if (s->picking_theme)
         tui_render_theme_picker(s);
 }
@@ -548,7 +668,12 @@ static void tui_handle_input(tui_state_t *s, int ch) {
     switch (ch) {
     case '\n':
     case KEY_ENTER:
-        if (s->row_count > 0) s->confirming = true;
+        if (s->row_count > 0) {
+            if (s->kill_after_select)
+                s->confirming = true;
+            else
+                s->prompting_action = true;
+        }
         break;
 
     case 27: // Esc
@@ -579,9 +704,17 @@ static void tui_handle_input(tui_state_t *s, int ch) {
     case 21: tui_cursor_move(s, -tui_list_height() / 2); break; // Ctrl-U
 
     case 1: // Ctrl-A
+        bool all_selected = true;
         for (int i = 0; i < s->row_count; ++i)
-            if (!tui_is_selected(s, s->rows[i].proc->pid))
-                tui_selection_toggle(s, s->rows[i].proc->pid);
+            if (!tui_is_selected(s, s->rows[i].proc->pid)) { all_selected = false; break; }
+
+        if (all_selected)
+            s->selected_count = 0;
+        else
+            for (int i = 0; i < s->row_count; ++i)
+                if (!tui_is_selected(s, s->rows[i].proc->pid))
+                    tui_selection_toggle(s, s->rows[i].proc->pid);
+
         s->dirty_list   = true;
         s->dirty_status = true;
         break;
@@ -616,6 +749,8 @@ tui_result_t tui_run(const swordfish_args_t *args, const process_info_t *procs, 
     tui_state_t s = {0};
     s.procs = procs;
     s.proc_count = count;
+    s.kill_after_select = args->kill_after_select;
+    s.pending_sig = args->sig;
     strncpy(s.active_theme, args->theme ? args->theme : "default",
             sizeof(s.active_theme) - 1);
 
@@ -629,21 +764,58 @@ tui_result_t tui_run(const swordfish_args_t *args, const process_info_t *procs, 
     tui_rebuild_rows(&s);
     tui_mark_all_dirty(&s);
 
-    while (!s.confirmed && !s.cancelled) {
+    while (!s.cancelled) {
         tui_render(&s);
+        if (s.cancelled) break;
+
+        if (s.confirmed) {
+            result.sig = s.pending_sig;
+            if (s.selected_count > 0) {
+                result.count = s.selected_count;
+                for (int i = 0; i < s.selected_count; i++)
+                    result.selected_pids[i] = s.selected_pids_set[i];
+            } else if (s.row_count > 0) {
+                result.count = 1;
+                result.selected_pids[0] = s.rows[s.cursor].proc->pid;
+            }
+
+            // send signals
+            int sent = 0, failed = 0;
+            for (int i = 0; i < result.count; i++) {
+                if (kill(result.selected_pids[i], result.sig) == 0)
+                    sent++;
+                else
+                    failed++;
+            }
+
+            // result popup
+            const int pw = 44;
+            const int ph = 5;
+            WINDOW *rpop = newwin(ph, pw, (LINES - ph) / 2, (COLS - pw) / 2);
+            wbkgd(rpop, COLOR_PAIR(PAIR_POPUP));
+            wattron(rpop, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
+            box(rpop, 0, 0);
+            wattroff(rpop, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
+            wattron(rpop, COLOR_PAIR(PAIR_POPUP));
+            if (failed == 0)
+                mvwprintw(rpop, 1, 2, "Sent signal %d to %d process%s",
+                          result.sig, sent, sent == 1 ? "" : "es");
+            else
+                mvwprintw(rpop, 1, 2, "Sent %d, failed %d (permission?)", sent, failed);
+            wattroff(rpop, COLOR_PAIR(PAIR_POPUP));
+            wattron(rpop, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
+            mvwaddstr(rpop, 3, 2, "Press any key to exit");
+            wattroff(rpop, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
+            wnoutrefresh(rpop);
+            doupdate();
+            keypad(rpop, TRUE);
+            wgetch(rpop);
+            delwin(rpop);
+            break;
+        }
+
         int ch = wgetch(s.win_list);
         tui_handle_input(&s, ch);
-    }
-
-    if (s.confirmed) {
-        if (s.selected_count > 0) {
-            result.count = s.selected_count;
-            for (int i = 0; i < s.selected_count; i++)
-                result.selected_pids[i] = s.selected_pids_set[i];
-        } else if (s.row_count > 0) {
-            result.count = 1;
-            result.selected_pids[0] = s.rows[s.cursor].proc->pid;
-        }
     }
 
     tui_cleanup_windows(&s);

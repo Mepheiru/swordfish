@@ -12,6 +12,7 @@
 typedef struct {
     pid_t selected_pids[TUI_MAX_SELECT];
     int count;
+    int sig; // signal to send — 0 means caller should decide
 } tui_result_t;
 
 typedef struct {
@@ -42,6 +43,12 @@ typedef struct {
     bool confirmed;
     bool cancelled;
     bool confirming;
+
+    bool prompting_action;
+    char action_buf[32];
+    int action_len;
+    int pending_sig;
+    bool kill_after_select;
 
     bool dirty_query;
     bool dirty_list;

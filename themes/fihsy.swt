@@ -1,4 +1,6 @@
-# Fihsy! The default swordfish theme
+# Fihsy! The default swordfish fpf theme
+# Pronounced FEH-see
+# By seaslug
 
 normal_text    = #c5c8c6
 normal_bg      = #181818
@@ -15,16 +17,19 @@ query_bg       = #181818
 header_text    = black
 header_bg      = white
 
-status_text    = black
-status_bg      = white
+status_text = black
+status_bg = white
 
-root_text            = yellow
-root_bg              = #181818
-root_selection_text  = yellow
-root_selection_bg    = #181818
+root_text           = yellow
+root_bg             = #181818
+root_selection_text = yellow
+root_selection_bg   = #181818
 
 dim_text       = #8a8f99
 dim_bg         = #181818
+
+dim_popup_text = #8a8f99
+dim_popup_bg   = #181818
 
 title_text     = cyan
 title_bg       = #181818

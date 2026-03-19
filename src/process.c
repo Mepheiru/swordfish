@@ -223,10 +223,8 @@ static void free_compiled_patterns(compiled_pattern_t *compiled, int count) {
 /* Check if a process matches the given REGEX patterns */
 static bool entry_matches(const process_info_t *p, pattern_list_t *plist,
                           const swordfish_args_t *args, compiled_pattern_t *compiled) {
-    /* no patterns means match everything — used by -W with no pattern */
     if (plist->pattern_count == 0)
         return true;
-    // Exclude patterns (same as before)
     if (args->exclude_patterns && args->exclude_count > 0) {
         char name_lc[256], cmdline_lc[256];
         safe_strncpy(name_lc, p->name, sizeof(name_lc));
@@ -401,8 +399,8 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         char *after_rparen = rparen + 2;
         p.status.state = *after_rparen;
 
-        /* Manual pointer walk — avoids strtok which is not re-entrant and
-           would corrupt state if anything else in the call stack uses it. */
+        /* Avoid strtok which is not re-entrant and
+           would corrupt state if anything else in the call stack uses it */
         char *cursor = after_rparen + 2;
         int field_index = 3;
 
@@ -414,20 +412,18 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         int found_threads = 0, found_start = 0, found_rss = 0;
 
         while (*cursor) {
-            /* skip leading spaces */
             while (*cursor == ' ') cursor++;
             if (!*cursor) break;
 
-            /* find end of this token */
             char *end = cursor;
             while (*end && *end != ' ') end++;
 
             switch (field_index) {
-            case 3:  ppid       = (pid_t)atoi(cursor);           break;
-            case 5:  session    = atoi(cursor);                  break;
+            case 3: ppid = (pid_t)atoi(cursor); break;
+            case 5: session = atoi(cursor); break;
             case 19: num_threads = atol(cursor); found_threads = 1; break;
             case 21: start_time = strtoull(cursor, NULL, 10); found_start = 1; break;
-            case 23: rss        = atol(cursor); found_rss = 1;   break;
+            case 23: rss = atol(cursor); found_rss = 1; break;
             }
 
             if (found_rss)
@@ -454,7 +450,6 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         if (args->user && strcasecmp(p.owner, args->user) != 0)
             continue;
 
-        /* parent and session filters applied before cmdline read for efficiency */
         if (args->parent_pid && ppid != args->parent_pid)
             continue;
 
@@ -462,7 +457,7 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
             continue;
 
         p.cmdline[0] = '\0';
-        /* always read cmdline for -W so the TUI fuzzy search has data */
+        // always read cmdline for -F so fuzzy search has data
         if (args->operation == SWOP_FUZZY|| !entry_matches(&p, plist, args, compiled)) {
             memcpy(path + base_len, "cmdline", 8);
             FILE *fcmd = fopen(path, "r");
@@ -479,7 +474,7 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         }
 
         if (args->operation == SWOP_FUZZY || args->sort_mode == SWSORT_RAM)
-            p.ram = (rss * page_size) >> 20; /* MiB via bitshift */
+            p.ram = (rss * page_size) >> 20; // MiB via bitshift <3
 
         if (args->operation == SWOP_FUZZY || args->sort_mode == SWSORT_AGE)
             p.start_time = start_time;
@@ -496,7 +491,6 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
 static void select_processes(int matched, process_info_t *matches, int *selected, int *count,
                              const swordfish_args_t *args, int sig) {
     if (!is_interactive()) {
-        // Non-interactive → select all
         for (int i = 0; i < matched; ++i)
             selected[(*count)++] = i;
         return;
@@ -571,7 +565,7 @@ static int confirm_and_act(const swordfish_args_t *args, int count, int *selecte
 
     run_hook(args->pre_hook, matches[selected[0]].pid, matches[selected[0]].name);
 
-    /* dry run — show what would happen without doing it */
+    // dry run
     if (args->dry_run) {
         for (int i = 0; i < count; ++i) {
             int idx = selected[i];
@@ -607,8 +601,6 @@ static int confirm_and_act(const swordfish_args_t *args, int count, int *selecte
         }
     }
 
-    /* wait/timeout applied after all signals are sent so we don't block
-       per-process — all processes get their signal before we start polling */
     if (args->timeout > 0 || args->wait_for_death) {
         int timeout_ms = args->timeout * 1000;
         int elapsed_ms = 0;
@@ -627,7 +619,7 @@ static int confirm_and_act(const swordfish_args_t *args, int count, int *selecte
                 break;
 
             if (args->timeout > 0 && elapsed_ms >= timeout_ms) {
-                /* escalate all still-alive processes to SIGKILL */
+                // escalate all still-alive processes to SIGKILL
                 for (int i = 0; i < count; ++i) {
                     int idx = selected[i];
                     char proc_path[32];
@@ -648,8 +640,8 @@ static int confirm_and_act(const swordfish_args_t *args, int count, int *selecte
 
     run_hook(args->post_hook, matches[selected[0]].pid, matches[selected[0]].name);
 
-    if (failed == 0)       return EXIT_FOUND;
-    if (killed == 0)       return all_eperm ? EXIT_PERMISSION : EXIT_NO_MATCH;
+    if (failed == 0) return EXIT_FOUND;
+    if (killed == 0) return all_eperm ? EXIT_PERMISSION : EXIT_NO_MATCH;
     return EXIT_PARTIAL;
 }
 
@@ -694,15 +686,7 @@ int scan_processes(const swordfish_args_t *args, pattern_list_t *plist) {
                 selected[count++] = 0;
             } else if (args->operation == SWOP_FUZZY) {
                 tui_result_t tui = tui_run(args, matches, matched);
-                /* map returned PIDs back to indices in matches[] */
-                for (int i = 0; i < tui.count; ++i) {
-                    for (int j = 0; j < matched; ++j) {
-                        if (matches[j].pid == tui.selected_pids[i]) {
-                            selected[count++] = j;
-                            break;
-                        }
-                    }
-                }
+                result = tui.count > 0 ? EXIT_FOUND : EXIT_NO_MATCH;
             } else if (args->operation == SWOP_SELECT && !args->auto_confirm) {
                 select_processes(matched, matches, selected, &count, args, args->sig);
             } else {

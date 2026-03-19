@@ -28,6 +28,9 @@ root_selection_bg    = #282828
 dim_text       = #928374
 dim_bg         = #282828
 
+dim_popup_text = #928374
+dim_popup_bg   = #3c3836
+
 title_text     = #fabd2f
 title_bg       = #282828
 

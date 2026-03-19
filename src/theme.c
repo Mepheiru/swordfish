@@ -54,9 +54,9 @@ static short alloc_hex_color(const char *hex) {
     short slot = (short)(16 + custom_color_count);
     custom_colors[custom_color_count++] = (typeof(custom_colors[0])){
         .idx = slot,
-        .r   = (short)(r * 1000 / 255),
-        .g   = (short)(g * 1000 / 255),
-        .b   = (short)(b * 1000 / 255),
+        .r = (short)(r * 1000 / 255),
+        .g = (short)(g * 1000 / 255),
+        .b = (short)(b * 1000 / 255),
     };
     return slot;
 }
@@ -139,6 +139,8 @@ static void theme_parse(const char *data, size_t len, sw_theme_t *out) {
         else if (strcmp(key, "title_bg") == 0) out->title_bg = color;
         else if (strcmp(key, "popup_text") == 0) out->popup_text = color;
         else if (strcmp(key, "popup_bg") == 0) out->popup_bg = color;
+        else if (strcmp(key, "dim_popup_text") == 0) out->dim_popup_text = color;
+        else if (strcmp(key, "dim_popup_bg") == 0) out->dim_popup_bg = color;
         else if (strcmp(key, "pid_text") == 0) out->pid_text = color;
         else if (strcmp(key, "user_text") == 0) out->user_text = color;
         else if (strcmp(key, "state_text") == 0) out->state_text = color;

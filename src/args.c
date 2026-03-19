@@ -163,11 +163,15 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
 
         // Operations
         case 'k':
-            if (args->operation != SWOP_STATIC) {
+            if (args->operation == SWOP_FUZZY) {
+                // -k after -F means kill on confirm without action prompt
+                args->kill_after_select = 1;
+            } else if (args->operation != SWOP_STATIC) {
                 ERROR("Only one operation flag allowed");
                 return 1;
+            } else {
+                args->operation = SWOP_KILL;
             }
-            args->operation = SWOP_KILL;
             break;
 
         case 'S':

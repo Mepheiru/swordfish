@@ -10,7 +10,7 @@ Stuff that needs to be done. This document also contains some potential ideas fo
   - Remove unused code.
 - Write "program.md". It will layout how the program runs and the purpose of each file. Write AFTER the main function is reorganized!!!
 - Improve error handling greatly.
-- -F need polish still
+- -F needs polish still
 - Color themes need to be able to be imported externaly. Config file must be completed before then
 - Config file support for default flags and settings.
 

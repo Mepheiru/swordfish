@@ -14,6 +14,7 @@ typedef struct {
     short dim_text, dim_bg;
     short title_text, title_bg;
     short popup_text, popup_bg;
+    short dim_popup_text, dim_popup_bg;
     short pid_text; // inherits normal_bg
     short user_text; // inherits normal_bg
     short state_text; // inherits normal_bg

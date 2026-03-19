@@ -27,6 +27,9 @@ root_selection_bg    = default
 dim_text       = white
 dim_bg         = default
 
+dim_popup_text = white
+dim_bg		   = blue
+
 title_text     = cyan
 title_bg       = default
 
