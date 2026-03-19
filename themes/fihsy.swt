@@ -57,18 +57,3 @@ ram_text             = #c5c8c6
 ram_highlight_text   = #181818
 ram_selected_text    = green
 
-pid_root_text             = #8a8f99
-pid_root_highlight_text   = #181818
-pid_root_selected_text    = green
-
-user_root_text            = #c5c8c6
-user_root_highlight_text  = #181818
-user_root_selected_text   = green
-
-state_root_text           = #c5c8c6
-state_root_highlight_text = #181818
-state_root_selected_text  = green
-
-ram_root_text             = #c5c8c6
-ram_root_highlight_text   = #181818
-ram_root_selected_text    = green
