@@ -25,6 +25,10 @@ status_bg            = #ffa764
 
 root_text            = #fdfcf4
 root_bg              = #ffa764
+
+root_highlight_text  = #fdfcf4
+root_highlight_bg    = #242424
+
 root_selection_text  = #fdfcf4
 root_selection_bg    = #242424
 
@@ -55,3 +59,4 @@ state_selected_text  = #ffa764
 ram_text             = #242424
 ram_highlight_text   = #ffa764
 ram_selected_text    = #ffa764
+
