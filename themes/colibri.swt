@@ -21,6 +21,10 @@ status_bg            = #281733
 
 root_text            = #f47868
 root_bg              = #3b224c
+
+root_highlight_text  = #f47868
+root_highlight_bg    = #cccccc
+
 root_selection_text  = #f47868
 root_selection_bg    = #540099
 

@@ -30,6 +30,10 @@ status_bg            = #242424
 
 root_text            = #f5444f
 root_bg              = #242424
+
+root_highlight_text  = #f5444f
+root_highlight_bg    = #61bdff
+
 root_selection_text  = #242424
 root_selection_bg    = #f5444f
 
@@ -49,7 +53,7 @@ pid_text             = #f5444f
 pid_highlight_text   = #242424
 pid_selected_text    = #242424
 
-user_text            = #9a9a9a
+user_text            = #bababa
 user_highlight_text  = #242424
 user_selected_text   = #242424
 
@@ -57,6 +61,6 @@ state_text           = #9a9a9a
 state_highlight_text = #242424
 state_selected_text  = #242424
 
-ram_text             = #9a9a9a
+ram_text             = #61bdff
 ram_highlight_text   = #242424
 ram_selected_text    = #242424

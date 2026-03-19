@@ -21,7 +21,11 @@ status_bg            = #ffb86c
 
 root_text            = #c93e3e
 root_bg              = #242424
-root_selection_text  = #242424
+
+root_highlight_text  = #c93e3e
+root_highlight_bg    = #ffb86c
+
+root_selection_text  = #ffb86c
 root_selection_bg    = #c93e3e
 
 dim_text             = #ffb86c

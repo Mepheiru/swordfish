@@ -1,13 +1,13 @@
 # the pinnical of man inspired by the :3
 # by mepheiru
 
-normal_text          = #342334
-normal_bg            = #000000
+normal_text          = #222cf4
+normal_bg            = #020000
 
-highlight_text       = #f89694
-highlight_bg         = #f23543
+highlight_text       = #f8cc94
+highlight_bg         = #f22543
 
-selected_text        = #f43f32
+selected_text        = #f4ff32
 selected_bg          = #f08972
 
 query_text           = #23f23f
@@ -16,19 +16,23 @@ query_bg             = #f32364
 header_text          = #2f3f23
 header_bg            = #ffa3f2
 
-status_text          = #2f3233
+status_text          = #cccccc
 status_bg            = #2f3232
 
-root_text            = #Fcccc4
-root_bg              = #f3f23f
-root_selection_text  = #233333
-root_selection_bg    = #23f322
+root_text            = #fcccc4
+root_bg              = #f2f364
 
-dim_text             = #ff3323
+root_highlight_text  = #23r23r
+root_highlight_bg    = #f3121f
+
+root_selection_text  = #f434f3
+root_selection_bg    = #23f232
+
+dim_text             = #f65f5f
 dim_bg               = #3f23f2
 
-dim_popup_text       = #f2f2f2
-dim_popup_bg         = #23321f
+dim_popup_text       = #c43c75
+dim_popup_bg         = #444889
 
 title_text           = #F23232
 title_bg             = #111111
@@ -37,17 +41,17 @@ popup_text           = #fffff2
 popup_bg             = #23f23f
 
 pid_text             = #f32fc2
-pid_highlight_text   = #cffcfc
-pid_selected_text    = #c123cf
+pid_highlight_text   = #f23b65
+pid_selected_text    = #ffc3cf
 
 user_text            = #c789c2
-user_highlight_text  = #cf2133
+user_highlight_text  = #cff133
 user_selected_text   = #f232f2
 
 state_text           = #242424
 state_highlight_text = #126387
 state_selected_text  = #f23453
 
-ram_text             = #234f22
+ram_text             = #c34cf2
 ram_highlight_text   = #2f3422
 ram_selected_text    = #f42322

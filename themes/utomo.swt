@@ -10,52 +10,56 @@
 # #fda5aa - paws
 
 normal_text          = #fcfaf6
-normal_bg            = #7c6a6b
+normal_bg            = #242424
 
-highlight_text       = #ff1119
+highlight_text       = #6e7fb9
 highlight_bg         = #242424
 
-selected_text        = #242424
-selected_bg          = #ff1119
+selected_text        = #fcfaf6
+selected_bg          = #ad6283
 
 query_text           = #242424
 query_bg             = #ff1119
 
-header_text          = #242424
-header_bg            = #7c6a6b
+header_text          = #fda5aa
+header_bg            = #242424
 
-status_text          = #242424
-status_bg            = #ff1119
+status_text          = #fcfaf6
+status_bg            = #242424
 
 root_text            = #ff1119
-root_bg              = #7c6a6b
-root_selection_text  = #7c6a6b
-root_selection_bg    = #ff1119
+root_bg              = #242424
 
-dim_text             = #242424
-dim_bg               = #7c6a6b
+root_selection_text  = #ff1119
+root_selection_bg    = #242424
 
-dim_popup_text       = #ff1119
-dim_popup_bg         = #7c6a6b
+root_highlight_text  = #ff1119
+root_highlight_bg    = #242424
+
+dim_text             = #7c6a6b
+dim_bg               = #242424
+
+dim_popup_text       = #ad6283
+dim_popup_bg         = #242424
 
 title_text           = #ff1119
-title_bg             = #7c6a6b
+title_bg             = #242424
 
-popup_text           = #242424
-popup_bg             = #7c6a6b
+popup_text           = #fcfaf6
+popup_bg             = #242424
 
-pid_text             = #ff1119
-pid_highlight_text   = #7c6a6b
-pid_selected_text    = #ffa764
+pid_text             = #7c6a6b
+pid_highlight_text   = #ff1119
+pid_selected_text    = #242424
 
-user_text            = #fda5aa
+user_text            = #fcfaf6
 user_highlight_text  = #6e7fb9
-user_selected_text   = #ffa764
+user_selected_text   = #242424
 
-state_text           = #fda5aa
-state_highlight_text = #6e7fb9
-state_selected_text  = #ffa764
+state_text           = #7c6a6b
+state_highlight_text = #fda5aa
+state_selected_text  = #242424
 
 ram_text             = #fda5aa
-ram_highlight_text   = #6e7fb9
-ram_selected_text    = #ffa764
+ram_highlight_text   = #fcfaf6
+ram_selected_text    = #242424
