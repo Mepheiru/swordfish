@@ -147,6 +147,7 @@ static void theme_parse(const char *data, size_t len, sw_theme_t *out) {
         else if (strcmp(key, "root_selection_text") == 0) out->root_selection_text = color;
         else if (strcmp(key, "root_selection_bg") == 0) out->root_selection_bg = color;
         else if (strcmp(key, "root_highlight_text") == 0) out->root_highlight_text = color;
+        else if (strcmp(key, "root_highlight_bg") == 0) out->root_highlight_bg = color;
         else if (strcmp(key, "dim_text") == 0) out->dim_text = color;
         else if (strcmp(key, "dim_bg") == 0) out->dim_bg = color;
         else if (strcmp(key, "title_text") == 0) out->title_text = color;

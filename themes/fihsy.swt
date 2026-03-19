@@ -20,11 +20,14 @@ header_bg            = white
 status_text          = #181818
 status_bg            = white
 
-root_text           = yellow
-root_bg             = #181818
-root_selection_text = yellow
-root_selection_bg   = #181818
-root_highlight_text = #c5c8c6
+root_text            = yellow
+root_bg              = #181818
+
+root_selection_text  = yellow
+root_selection_bg    = #181818
+
+root_highlight_text  = #181818
+root_highlight_bg    = cyan
 
 dim_text             = #8a8f99
 dim_bg               = #181818

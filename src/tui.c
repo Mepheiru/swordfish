@@ -116,7 +116,7 @@ static void tui_init_colors(const sw_theme_t *t) {
 
     init_pair(PAIR_ROOT_NORMAL,    t->root_text,           t->root_bg);
     init_pair(PAIR_ROOT_SELECTED,  t->root_selection_text, t->root_selection_bg);
-    init_pair(PAIR_ROOT_HIGHLIGHT, t->root_highlight_text, t->highlight_bg);
+    init_pair(PAIR_ROOT_HIGHLIGHT, t->root_highlight_text, t->root_highlight_bg);
 
     init_pair(PAIR_PID,   t->pid_text,   t->normal_bg);
     init_pair(PAIR_USER,  t->user_text,  t->normal_bg);
