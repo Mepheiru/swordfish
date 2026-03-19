@@ -35,11 +35,17 @@
 #define PAIR_TITLE 8
 #define PAIR_POPUP 9
 #define PAIR_DIM_POPUP 16
-// root pairs bake the correct bg so switching mid-row doesn't clobber row bg
 #define PAIR_ROOT_NORMAL 10
 #define PAIR_ROOT_SELECTED 11
 #define PAIR_ROOT_HIGHLIGHT 25
-// per-column text pairs - bg always inherits normal_bg
+#define PAIR_PID_ROOT_SELECTED   26
+#define PAIR_USER_ROOT_SELECTED  27
+#define PAIR_STATE_ROOT_SELECTED 28
+#define PAIR_RAM_ROOT_SELECTED   29
+#define PAIR_PID_ROOT_HIGHLIGHT   30
+#define PAIR_USER_ROOT_HIGHLIGHT  31
+#define PAIR_STATE_ROOT_HIGHLIGHT 32
+#define PAIR_RAM_ROOT_HIGHLIGHT   33
 #define PAIR_PID 12
 #define PAIR_USER 13
 #define PAIR_STATE 14
@@ -131,6 +137,16 @@ static void tui_init_colors(const sw_theme_t *t) {
     init_pair(PAIR_STATE_HIGHLIGHT, t->state_highlight_text, t->highlight_bg);
     init_pair(PAIR_RAM_SELECTED,    t->ram_selected_text,    t->selected_bg);
     init_pair(PAIR_RAM_HIGHLIGHT,   t->ram_highlight_text,   t->highlight_bg);
+
+    init_pair(PAIR_PID_ROOT_SELECTED,   t->pid_selected_text,   t->root_selection_bg);
+    init_pair(PAIR_USER_ROOT_SELECTED,  t->user_selected_text,  t->root_selection_bg);
+    init_pair(PAIR_STATE_ROOT_SELECTED, t->state_selected_text, t->root_selection_bg);
+    init_pair(PAIR_RAM_ROOT_SELECTED,   t->ram_selected_text,   t->root_selection_bg);
+
+    init_pair(PAIR_PID_ROOT_HIGHLIGHT,   t->pid_highlight_text,   t->root_highlight_bg);
+    init_pair(PAIR_USER_ROOT_HIGHLIGHT,  t->user_highlight_text,  t->root_highlight_bg);
+    init_pair(PAIR_STATE_ROOT_HIGHLIGHT, t->state_highlight_text, t->root_highlight_bg);
+    init_pair(PAIR_RAM_ROOT_HIGHLIGHT,   t->ram_highlight_text,   t->root_highlight_bg);
 }
 
 static void tui_apply_theme(tui_state_t *s, const char *name) {
@@ -139,7 +155,6 @@ static void tui_apply_theme(tui_state_t *s, const char *name) {
     tui_init_colors(&theme);
     snprintf(s->active_theme, sizeof(s->active_theme), "%s", name ? name : "default");
 
-    // re-stamp backgrounds on all windows with the new color pairs
     if (s->win_query) wbkgd(s->win_query, COLOR_PAIR(PAIR_NORMAL));
     if (s->win_list) wbkgd(s->win_list, COLOR_PAIR(PAIR_NORMAL));
     if (s->win_status) wbkgd(s->win_status, COLOR_PAIR(PAIR_STATUS));
@@ -309,7 +324,7 @@ static void tui_render_list(tui_state_t *s) {
         // pid number
         char pid_buf[COL_PID_W + 2];
         snprintf(pid_buf, sizeof(pid_buf), "%-*d ", COL_PID_W, p->pid);
-        int pid_pair   = is_root ? (is_cursor ? PAIR_ROOT_HIGHLIGHT : (is_selected ? PAIR_ROOT_SELECTED : PAIR_PID))   : (is_cursor ? PAIR_PID_HIGHLIGHT   : (is_selected ? PAIR_PID_SELECTED   : PAIR_PID));
+        int pid_pair   = is_root ? (is_cursor ? PAIR_PID_ROOT_HIGHLIGHT   : (is_selected ? PAIR_PID_ROOT_SELECTED   : PAIR_PID))   : (is_cursor ? PAIR_PID_HIGHLIGHT   : (is_selected ? PAIR_PID_SELECTED   : PAIR_PID));
         wattron(w, COLOR_PAIR(pid_pair) | bold);
         waddnstr(w, pid_buf, COL_PID_W + 1);
 
@@ -323,14 +338,14 @@ static void tui_render_list(tui_state_t *s) {
         // user
         char user_buf[COL_USER_W + 2];
         snprintf(user_buf, sizeof(user_buf), "%-*.*s ", COL_USER_W, COL_USER_W, p->owner);
-        int user_pair  = is_root ? (is_cursor ? PAIR_ROOT_HIGHLIGHT : (is_selected ? PAIR_ROOT_SELECTED : PAIR_USER))  : (is_cursor ? PAIR_USER_HIGHLIGHT  : (is_selected ? PAIR_USER_SELECTED  : PAIR_USER));
+        int user_pair  = is_root ? (is_cursor ? PAIR_USER_ROOT_HIGHLIGHT  : (is_selected ? PAIR_USER_ROOT_SELECTED  : PAIR_USER))  : (is_cursor ? PAIR_USER_HIGHLIGHT  : (is_selected ? PAIR_USER_SELECTED  : PAIR_USER));
         wattron(w, COLOR_PAIR(user_pair) | bold);
         waddnstr(w, user_buf, COL_USER_W + 1);
 
         // state
         char state_buf[COL_STATE_W + 2];
         snprintf(state_buf, sizeof(state_buf), "%-*c ", COL_STATE_W, p->status.state);
-        int state_pair = is_root ? (is_cursor ? PAIR_ROOT_HIGHLIGHT : (is_selected ? PAIR_ROOT_SELECTED : PAIR_STATE)) : (is_cursor ? PAIR_STATE_HIGHLIGHT : (is_selected ? PAIR_STATE_SELECTED : PAIR_STATE));
+        int state_pair = is_root ? (is_cursor ? PAIR_STATE_ROOT_HIGHLIGHT : (is_selected ? PAIR_STATE_ROOT_SELECTED : PAIR_STATE)) : (is_cursor ? PAIR_STATE_HIGHLIGHT : (is_selected ? PAIR_STATE_SELECTED : PAIR_STATE));
         wattron(w, COLOR_PAIR(state_pair) | bold);
         waddnstr(w, state_buf, COL_STATE_W + 1);
 
@@ -339,7 +354,7 @@ static void tui_render_list(tui_state_t *s) {
         fmt_ram(ram_buf, sizeof(ram_buf), p->ram);
         char ram_col[COL_RAM_W + 1];
         snprintf(ram_col, sizeof(ram_col), "%-*.*s", COL_RAM_W, COL_RAM_W, ram_buf);
-        int ram_pair   = is_root ? (is_cursor ? PAIR_ROOT_HIGHLIGHT : (is_selected ? PAIR_ROOT_SELECTED : PAIR_RAM))   : (is_cursor ? PAIR_RAM_HIGHLIGHT   : (is_selected ? PAIR_RAM_SELECTED   : PAIR_RAM));
+        int ram_pair   = is_root ? (is_cursor ? PAIR_RAM_ROOT_HIGHLIGHT   : (is_selected ? PAIR_RAM_ROOT_SELECTED   : PAIR_RAM))   : (is_cursor ? PAIR_RAM_HIGHLIGHT   : (is_selected ? PAIR_RAM_SELECTED   : PAIR_RAM));
         wattron(w, COLOR_PAIR(ram_pair) | bold);
         waddnstr(w, ram_col, COL_RAM_W);
 
