@@ -296,6 +296,7 @@ static void tui_render_list(tui_state_t *s) {
         int bold = is_cursor ? A_BOLD : 0;
 
         int pair_base = is_cursor ? PAIR_HIGHLIGHT : (is_selected ? PAIR_SELECTED : PAIR_NORMAL);
+        if (is_cursor && is_root) pair_base = PAIR_ROOT_HIGHLIGHT;
 
         // sel marker - always base pair
         wattron(w, COLOR_PAIR(pair_base) | bold);
@@ -304,7 +305,7 @@ static void tui_render_list(tui_state_t *s) {
         // pid number
         char pid_buf[COL_PID_W + 2];
         snprintf(pid_buf, sizeof(pid_buf), "%-*d ", COL_PID_W, p->pid);
-        int pid_pair = is_cursor ? PAIR_PID_HIGHLIGHT : (is_selected ? PAIR_PID_SELECTED : PAIR_PID);
+        int pid_pair = (is_cursor && is_root) ? PAIR_ROOT_HIGHLIGHT : (is_cursor ? PAIR_PID_HIGHLIGHT : (is_selected ? PAIR_PID_SELECTED : PAIR_PID));
         wattron(w, COLOR_PAIR(pid_pair) | bold);
         waddnstr(w, pid_buf, COL_PID_W + 1);
 
@@ -323,14 +324,14 @@ static void tui_render_list(tui_state_t *s) {
         // user
         char user_buf[COL_USER_W + 2];
         snprintf(user_buf, sizeof(user_buf), "%-*.*s ", COL_USER_W, COL_USER_W, p->owner);
-        int user_pair = is_cursor ? PAIR_USER_HIGHLIGHT : (is_selected ? PAIR_USER_SELECTED : PAIR_USER);
+        int user_pair = (is_cursor && is_root) ? PAIR_ROOT_HIGHLIGHT : (is_cursor ? PAIR_USER_HIGHLIGHT : (is_selected ? PAIR_USER_SELECTED : PAIR_USER));
         wattron(w, COLOR_PAIR(user_pair) | bold);
         waddnstr(w, user_buf, COL_USER_W + 1);
 
         // state
         char state_buf[COL_STATE_W + 2];
         snprintf(state_buf, sizeof(state_buf), "%-*c ", COL_STATE_W, p->status.state);
-        int state_pair = is_cursor ? PAIR_STATE_HIGHLIGHT : (is_selected ? PAIR_STATE_SELECTED : PAIR_STATE);
+        int state_pair = (is_cursor && is_root) ? PAIR_ROOT_HIGHLIGHT : (is_cursor ? PAIR_STATE_HIGHLIGHT : (is_selected ? PAIR_STATE_SELECTED : PAIR_STATE));
         wattron(w, COLOR_PAIR(state_pair) | bold);
         waddnstr(w, state_buf, COL_STATE_W + 1);
 
@@ -339,7 +340,7 @@ static void tui_render_list(tui_state_t *s) {
         fmt_ram(ram_buf, sizeof(ram_buf), p->ram);
         char ram_col[COL_RAM_W + 1];
         snprintf(ram_col, sizeof(ram_col), "%-*.*s", COL_RAM_W, COL_RAM_W, ram_buf);
-        int ram_pair = is_cursor ? PAIR_RAM_HIGHLIGHT : (is_selected ? PAIR_RAM_SELECTED : PAIR_RAM);
+        int ram_pair = (is_cursor && is_root) ? PAIR_ROOT_HIGHLIGHT : (is_cursor ? PAIR_RAM_HIGHLIGHT : (is_selected ? PAIR_RAM_SELECTED : PAIR_RAM));
         wattron(w, COLOR_PAIR(ram_pair) | bold);
         waddnstr(w, ram_col, COL_RAM_W);
 
