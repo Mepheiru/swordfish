@@ -19,15 +19,27 @@ typedef struct {
     short pid_text;
     short pid_selected_text;
     short pid_highlight_text;
+    short pid_root_text;
+    short pid_root_selected_text;
+    short pid_root_highlight_text;
     short user_text;
     short user_selected_text;
     short user_highlight_text;
+    short user_root_text;
+    short user_root_selected_text;
+    short user_root_highlight_text;
     short state_text;
     short state_selected_text;
     short state_highlight_text;
+    short state_root_text;
+    short state_root_selected_text;
+    short state_root_highlight_text;
     short ram_text;
     short ram_selected_text;
     short ram_highlight_text;
+    short ram_root_text;
+    short ram_root_selected_text;
+    short ram_root_highlight_text;
 } sw_theme_t;
 
 void theme_load(const char *name, sw_theme_t *out);
