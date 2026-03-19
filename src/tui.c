@@ -38,6 +38,7 @@
 // root pairs bake the correct bg so switching mid-row doesn't clobber row bg
 #define PAIR_ROOT_NORMAL 10
 #define PAIR_ROOT_SELECTED 11
+#define PAIR_ROOT_HIGHLIGHT 25
 // per-column text pairs - bg always inherits normal_bg
 #define PAIR_PID 12
 #define PAIR_USER 13
@@ -113,8 +114,9 @@ static void tui_init_colors(const sw_theme_t *t) {
     short dp_bg   = t->dim_popup_bg   ? t->dim_popup_bg   : t->dim_bg;
     init_pair(PAIR_DIM_POPUP, dp_text, dp_bg);
 
-    init_pair(PAIR_ROOT_NORMAL, t->root_text, t->root_bg);
-    init_pair(PAIR_ROOT_SELECTED, t->root_selection_text, t->root_selection_bg);
+    init_pair(PAIR_ROOT_NORMAL,    t->root_text,           t->root_bg);
+    init_pair(PAIR_ROOT_SELECTED,  t->root_selection_text, t->root_selection_bg);
+    init_pair(PAIR_ROOT_HIGHLIGHT, t->root_highlight_text, t->highlight_bg);
 
     init_pair(PAIR_PID,   t->pid_text,   t->normal_bg);
     init_pair(PAIR_USER,  t->user_text,  t->normal_bg);
@@ -310,7 +312,8 @@ static void tui_render_list(tui_state_t *s) {
         char name_buf[COL_NAME_W + 2];
         snprintf(name_buf, sizeof(name_buf), "%-*.*s ", COL_NAME_W, COL_NAME_W, p->name);
         int name_pair;
-        if (is_cursor) name_pair = PAIR_HIGHLIGHT;
+        if (is_cursor && is_root) name_pair = PAIR_ROOT_HIGHLIGHT;
+        else if (is_cursor) name_pair = PAIR_HIGHLIGHT;
         else if (is_root && is_selected) name_pair = PAIR_ROOT_SELECTED;
         else if (is_root) name_pair = PAIR_ROOT_NORMAL;
         else name_pair = pair_base;

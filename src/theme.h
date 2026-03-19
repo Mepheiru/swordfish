@@ -11,6 +11,7 @@ typedef struct {
     short status_text, status_bg;
     short root_text, root_bg;
     short root_selection_text, root_selection_bg;
+    short root_highlight_text;
     short dim_text, dim_bg;
     short title_text, title_bg;
     short popup_text, popup_bg;
