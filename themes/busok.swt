@@ -1,0 +1,62 @@
+# busok inspired by gix from mau makan apa? :3
+# by mepheiru
+
+# #61bdff - shirt color
+# #f5444f - pants side color
+# #9a9a9a - pants main color
+# #bababa - fur color
+# #ffffff - shirt color
+# #ffabb1 - paw color
+# #000000 - in scene black
+# #242424 - black ill use anyway cuz fuck yoy
+
+normal_text          = #bababa
+normal_bg            = #242424
+
+highlight_text       = #242424
+highlight_bg         = #61bdff
+
+selected_text        = #242424
+selected_bg          = #f5444f
+
+query_text           = #61bdff
+query_bg             = #242424
+
+header_text          = #61bdff
+header_bg            = #242424
+
+status_text          = #61bdff
+status_bg            = #242424
+
+root_text            = #f5444f
+root_bg              = #242424
+root_selection_text  = #242424
+root_selection_bg    = #f5444f
+
+dim_text             = #61bdff
+dim_bg               = #242424
+
+dim_popup_text       = #61bdff
+dim_popup_bg         = #242424
+
+title_text           = #ffabb1
+title_bg             = #242424
+
+popup_text           = #61bdff
+popup_bg             = #242424
+
+pid_text             = #f5444f
+pid_highlight_text   = #242424
+pid_selected_text    = #242424
+
+user_text            = #9a9a9a
+user_highlight_text  = #242424
+user_selected_text   = #242424
+
+state_text           = #9a9a9a
+state_highlight_text = #242424
+state_selected_text  = #242424
+
+ram_text             = #9a9a9a
+ram_highlight_text   = #242424
+ram_selected_text    = #242424

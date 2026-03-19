@@ -1,0 +1,53 @@
+# sulfur :3
+# by mepheiru
+
+normal_text          = #ffb86c
+normal_bg            = #242424
+
+highlight_text       = #242424
+highlight_bg         = #ffb86c
+
+selected_text        = #242424
+selected_bg          = #c93e3e
+
+query_text           = #ffb86c
+query_bg             = #242424
+
+header_text          = #ffb86c
+header_bg            = #242424
+
+status_text          = #242424
+status_bg            = #ffb86c
+
+root_text            = #c93e3e
+root_bg              = #242424
+root_selection_text  = #242424
+root_selection_bg    = #c93e3e
+
+dim_text             = #ffb86c
+dim_bg               = #242424
+
+dim_popup_text       = #ffb86c
+dim_popup_bg         = #242424
+
+title_text           = #939d5d
+title_bg             = #242424
+
+popup_text           = #ffb86c
+popup_bg             = #242424
+
+pid_text             = #c93e3e
+pid_highlight_text   = #242424
+pid_selected_text    = #ffb86c
+
+user_text            = #ffb86c
+user_highlight_text  = #242424
+user_selected_text   = #242424
+
+state_text           = #ffb86c
+state_highlight_text = #242424
+state_selected_text  = #242424
+
+ram_text             = #ffb86c
+ram_highlight_text   = #242424
+ram_selected_text    = #242424
