@@ -1,42 +1,53 @@
-# colibri theme for swordfish — ported from helix's colibri theme by archseer
+# colibri theme for swordfish, ported from helix's colibri theme by archseer
+# this shit is so fucking ass - mepheiru
 
-normal_text    = #a4a0e8
-normal_bg      = #3b224c
+normal_text          = #a4a0e8
+normal_bg            = #3b224c
 
-highlight_text = #281733
-highlight_bg   = #cccccc
+highlight_text       = #281733
+highlight_bg         = #cccccc
 
-selected_text  = #a4a0e8
-selected_bg    = #540099
+selected_text        = #a4a0e8
+selected_bg          = #540099
 
-query_text     = #a4a0e8
-query_bg       = #3b224c
+query_text           = #a4a0e8
+query_bg             = #3b224c
 
-header_text    = #dbbfef
-header_bg      = #281733
+header_text          = #dbbfef
+header_bg            = #281733
 
-status_text    = #dbbfef
-status_bg      = #281733
+status_text          = #dbbfef
+status_bg            = #281733
 
 root_text            = #f47868
 root_bg              = #3b224c
 root_selection_text  = #f47868
 root_selection_bg    = #540099
 
-dim_text       = #697C81
-dim_bg         = #3b224c
+dim_text             = #697C81
+dim_bg               = #3b224c
 
-dim_popup_text = #697C81
-dim_popup_bg   = #281733
+dim_popup_text       = #697C81
+dim_popup_bg         = #281733
 
-title_text     = #dbbfef
-title_bg       = #3b224c
+title_text           = #dbbfef
+title_bg             = #3b224c
 
-popup_text     = #a4a0e8
-popup_bg       = #281733
+popup_text           = #a4a0e8
+popup_bg             = #281733
 
-pid_text       = #5a5977
-user_text      = #a4a0e8
-state_text     = #5a5977
-ram_text       = #9ff28f
+pid_text             = #5a5977
+pid_highlight_text   = #281733
+pid_selected_text    = #a4a0e8
 
+user_text            = #a4a0e8
+user_highlight_text  = #281733
+user_selected_text   = #a4a0e8
+
+state_text           = #5a5977
+state_highlight_text = #281733
+state_selected_text  = #a4a0e8
+
+ram_text             = #9ff28f
+ram_highlight_text   = #281733
+ram_selected_text    = #a4a0e8

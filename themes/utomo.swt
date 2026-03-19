@@ -1,0 +1,61 @@
+# tempe inspired by youll never guess tempe from mau makan apa? :3
+# by mepheiru
+
+# #242424
+# #fcfaf6 - fur color
+# #ff1119 - fur accent
+# #ad6283 - tounge / tie
+# #7c6a6b - shirt
+# #6e7fb9 - undershirt
+# #fda5aa - paws
+
+normal_text          = #fcfaf6
+normal_bg            = #7c6a6b
+
+highlight_text       = #ff1119
+highlight_bg         = #242424
+
+selected_text        = #242424
+selected_bg          = #ff1119
+
+query_text           = #242424
+query_bg             = #ff1119
+
+header_text          = #242424
+header_bg            = #7c6a6b
+
+status_text          = #242424
+status_bg            = #ff1119
+
+root_text            = #ff1119
+root_bg              = #7c6a6b
+root_selection_text  = #7c6a6b
+root_selection_bg    = #ff1119
+
+dim_text             = #242424
+dim_bg               = #7c6a6b
+
+dim_popup_text       = #ff1119
+dim_popup_bg         = #7c6a6b
+
+title_text           = #ff1119
+title_bg             = #7c6a6b
+
+popup_text           = #242424
+popup_bg             = #7c6a6b
+
+pid_text             = #ff1119
+pid_highlight_text   = #7c6a6b
+pid_selected_text    = #ffa764
+
+user_text            = #fda5aa
+user_highlight_text  = #6e7fb9
+user_selected_text   = #ffa764
+
+state_text           = #fda5aa
+state_highlight_text = #6e7fb9
+state_selected_text  = #ffa764
+
+ram_text             = #fda5aa
+ram_highlight_text   = #6e7fb9
+ram_selected_text    = #ffa764

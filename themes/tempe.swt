@@ -1,0 +1,57 @@
+# tempe inspired by youll never guess tempe from mau makan apa? :3
+# by mepheiru
+
+# #ffa764 - main color
+# #242424 - wait shit
+# #fdfcf4 - this shit is only three colors
+
+normal_text          = #242424
+normal_bg            = #ffa764
+
+highlight_text       = #ffa764
+highlight_bg         = #242424
+
+selected_text        = #ffa764
+selected_bg          = #242424
+
+query_text           = #242424
+query_bg             = #ffa764
+
+header_text          = #242424
+header_bg            = #ffa764
+
+status_text          = #242424
+status_bg            = #ffa764
+
+root_text            = #fdfcf4
+root_bg              = #ffa764
+root_selection_text  = #fdfcf4
+root_selection_bg    = #242424
+
+dim_text             = #242424
+dim_bg               = #ffa764
+
+dim_popup_text       = #242424
+dim_popup_bg         = #ffa764
+
+title_text           = #fdfcf4
+title_bg             = #ffa764
+
+popup_text           = #242424
+popup_bg             = #ffa764
+
+pid_text             = #242424
+pid_highlight_text   = #ffa764
+pid_selected_text    = #ffa764
+
+user_text            = #242424
+user_highlight_text  = #ffa764
+user_selected_text   = #ffa764
+
+state_text           = #242424
+state_highlight_text = #ffa764
+state_selected_text  = #ffa764
+
+ram_text             = #242424
+ram_highlight_text   = #ffa764
+ram_selected_text    = #ffa764

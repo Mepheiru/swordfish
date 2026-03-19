@@ -6,14 +6,23 @@
 #include <stdlib.h>
 
 // theme data
+
 extern const char _binary_themes_fihsy_swt_start[];
 extern const char _binary_themes_fihsy_swt_end[];
-extern const char _binary_themes_nord_swt_start[];
-extern const char _binary_themes_nord_swt_end[];
 extern const char _binary_themes_gruvbox_swt_start[];
 extern const char _binary_themes_gruvbox_swt_end[];
 extern const char _binary_themes_colibri_swt_start[];
 extern const char _binary_themes_colibri_swt_end[];
+extern const char _binary_themes_busok_swt_start[];
+extern const char _binary_themes_busok_swt_end[];
+extern const char _binary_themes_sulfur_swt_start[];
+extern const char _binary_themes_sulfur_swt_end[];
+extern const char _binary_themes_quisquiliarum_swt_start[];
+extern const char _binary_themes_quisquiliarum_swt_end[];
+extern const char _binary_themes_tempe_swt_start[];
+extern const char _binary_themes_tempe_swt_end[];
+extern const char _binary_themes_utomo_swt_start[];
+extern const char _binary_themes_utomo_swt_end[];
 
 typedef struct {
     const char *name;
@@ -23,9 +32,13 @@ typedef struct {
 
 static const theme_entry_t theme_table[] = {
     { "default", _binary_themes_fihsy_swt_start, _binary_themes_fihsy_swt_end  },
-    { "nord", _binary_themes_nord_swt_start, _binary_themes_nord_swt_end   },
     { "gruvbox", _binary_themes_gruvbox_swt_start, _binary_themes_gruvbox_swt_end},
     { "colibri", _binary_themes_colibri_swt_start, _binary_themes_colibri_swt_end },
+    { "busok", _binary_themes_busok_swt_start, _binary_themes_busok_swt_end },
+    { "sulfur", _binary_themes_sulfur_swt_start, _binary_themes_sulfur_swt_end },
+    { "quisquiliarum", _binary_themes_quisquiliarum_swt_start, _binary_themes_quisquiliarum_swt_end },
+    { "tempe", _binary_themes_tempe_swt_start, _binary_themes_tempe_swt_end },
+    { "utomo", _binary_themes_utomo_swt_start, _binary_themes_utomo_swt_end },
     { NULL, NULL, NULL }
 };
 

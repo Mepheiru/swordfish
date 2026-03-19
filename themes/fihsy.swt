@@ -1,54 +1,55 @@
-# Fihsy! The default swordfish fpf theme
-# Pronounced FEH-see
-# By seaslug
+# fihsy! The default swordfish fpf theme
+# pronounced FIH-see
+# by seaslug
 
-normal_text    = #c5c8c6
-normal_bg      = #181818
+normal_text          = #c5c8c6
+normal_bg            = #181818
 
-highlight_text = black
-highlight_bg   = cyan
+highlight_text       = #181818
+highlight_bg         = cyan
 
-selected_text  = green
-selected_bg    = #181818
+selected_text        = green
+selected_bg          = #181818
 
-query_text     = #c5c8c6
-query_bg       = #181818
+query_text           = #c5c8c6
+query_bg             = #181818
 
-header_text    = black
-header_bg      = white
+header_text          = #181818
+header_bg            = white
 
-status_text    = black
-status_bg      = white
+status_text          = #181818
+status_bg            = white
 
-root_text           = yellow
-root_bg             = #181818
-root_selection_text = yellow
-root_selection_bg   = #181818
+root_text            = yellow
+root_bg              = #181818
+root_selection_text  = yellow
+root_selection_bg    = #181818
 
-dim_text       = #8a8f99
-dim_bg         = #181818
+dim_text             = #8a8f99
+dim_bg               = #181818
 
-dim_popup_text = #8a8f99
-dim_popup_bg   = #181818
+dim_popup_text       = #8a8f99
+dim_popup_bg         = #181818
 
-title_text     = cyan
-title_bg       = #181818
+title_text           = cyan
+title_bg             = #181818
 
-popup_text     = #c5c8c6
-popup_bg       = #181818
+popup_text           = #c5c8c6
+popup_bg             = #181818
 
-pid_text            = #8a8f99
-pid_selected_text   = green
-pid_highlight_text  = black
+pid_text             = #8a8f99
+pid_highlight_text   = #181818
+pid_selected_text    = green
 
-user_text           = #c5c8c6
-user_selected_text  = green
-user_highlight_text = black
+user_text            = #c5c8c6
+user_highlight_text  = #181818
+user_selected_text   = green
 
 state_text           = #c5c8c6
+state_highlight_text = #181818
 state_selected_text  = green
-state_highlight_text = black
 
-ram_text            = #c5c8c6
-ram_selected_text   = green
-ram_highlight_text  = black
+ram_text             = #c5c8c6
+ram_highlight_text   = #181818
+ram_selected_text    = green
+
