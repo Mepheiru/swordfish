@@ -15,10 +15,10 @@ int main(void) {
 
     int total = tests_passed + tests_failed;
     if (tests_failed == 0) {
-        printf("ok — %d/%d tests passed\n\n", tests_passed, total);
+        printf("ok -- %d/%d tests passed\n\n", tests_passed, total);
         return 0;
     } else {
-        printf("FAILED — %d/%d tests passed, %d failed\n\n",
+        printf("FAILED -- %d/%d tests passed, %d failed\n\n",
                tests_passed, total, tests_failed);
         return 1;
     }

@@ -23,21 +23,21 @@
 static const char *short_opts = "SFkxyvtpnwr";
 
 static struct option long_opts[] = {
-    {"sort",        required_argument, NULL, LOPT_SORT},
-    {"help",        optional_argument, NULL, LOPT_HELP},
-    {"exclude",     required_argument, NULL, LOPT_EXCLUDE},
-    {"pre-hook",    required_argument, NULL, LOPT_PRE_HOOK},
-    {"post-hook",   required_argument, NULL, LOPT_POST_HOOK},
+    {"sort", required_argument, NULL, LOPT_SORT},
+    {"help", optional_argument, NULL, LOPT_HELP},
+    {"exclude", required_argument, NULL, LOPT_EXCLUDE},
+    {"pre-hook", required_argument, NULL, LOPT_PRE_HOOK},
+    {"post-hook", required_argument, NULL, LOPT_POST_HOOK},
     {"completions", required_argument, NULL, LOPT_COMPLETIONS},
-    {"version",     no_argument,       NULL, LOPT_VERSION},
-    {"man",         optional_argument, NULL, LOPT_MAN},
-    {"user",        required_argument, NULL, LOPT_USER},
-    {"retry",       required_argument, NULL, LOPT_RETRY},
-    {"timeout",     required_argument, NULL, LOPT_TIMEOUT},
-    {"format",      required_argument, NULL, LOPT_FORMAT},
-    {"parent",      required_argument, NULL, LOPT_PARENT},
-    {"session",     required_argument, NULL, LOPT_SESSION},
-    {"pidfile",     required_argument, NULL, LOPT_PIDFILE},
+    {"version", no_argument,       NULL, LOPT_VERSION},
+    {"man", optional_argument, NULL, LOPT_MAN},
+    {"user", required_argument, NULL, LOPT_USER},
+    {"retry", required_argument, NULL, LOPT_RETRY},
+    {"timeout", required_argument, NULL, LOPT_TIMEOUT},
+    {"format", required_argument, NULL, LOPT_FORMAT},
+    {"parent", required_argument, NULL, LOPT_PARENT},
+    {"session", required_argument, NULL, LOPT_SESSION},
+    {"pidfile", required_argument, NULL, LOPT_PIDFILE},
     {"theme", required_argument, NULL, LOPT_THEME},
     {0, 0, 0, 0}
 };
@@ -60,45 +60,40 @@ int get_signal(const char *sigstr) {
     for (size_t i = 0; i < signals_count; i++)
         if (strcasecmp(sigstr, signals[i].name) == 0)
             return signals[i].sig;
-
     return -1;
 }
 
 static void init_args(swordfish_args_t *args) {
-    args->sig_str           = "TERM";
-    args->sig               = SIGTERM;
-    args->user              = NULL;
-    args->format            = NULL;
-    args->pidfile           = NULL;
-    args->help_topic        = NULL;
-    args->exclude_patterns  = NULL;
-    args->sig               = SIGTERM;
-    args->retry_time        = 0;
-    args->timeout           = 0;
-    args->session_id        = 0;
-    args->parent_pid        = 0;
-    args->exclude_count     = 0;
+    args->sig_str = "TERM";
+    args->sig = SIGTERM;
+    args->user = NULL;
+    args->format = NULL;
+    args->pidfile = NULL;
+    args->help_topic = NULL;
+    args->exclude_patterns = NULL;
+    args->sig = SIGTERM;
+    args->retry_time = 0;
+    args->timeout = 0;
+    args->session_id = 0;
+    args->parent_pid = 0;
+    args->exclude_count = 0;
     args->pattern_start_idx = 0;
-    args->verbose_level     = 0;
-    args->operation         = SWOP_STATIC;
-    args->sort_mode         = SWSORT_NONE;
-    args->exact_match       = 0;
-    args->auto_confirm      = 0;
-    args->print_pids_only   = 0;
-    args->top_only          = 0;
-    args->hide_root         = 0;
-    args->dry_run           = 0;
-    args->wait_for_death    = 0;
-    args->pre_hook[0]       = '\0';
-    args->post_hook[0]      = '\0';
+    args->verbose_level = 0;
+    args->operation = SWOP_STATIC;
+    args->sort_mode = SWSORT_NONE;
+    args->exact_match = 0;
+    args->auto_confirm = 0;
+    args->print_pids_only = 0;
+    args->top_only = 0;
+    args->hide_root = 0;
+    args->dry_run = 0;
+    args->wait_for_death = 0;
+    args->pre_hook[0] = '\0';
+    args->post_hook[0] = '\0';
     args->theme = NULL;
 }
 
-/* Extract signal embedded in -k<sig> and rewrite argv so getopt
-   sees plain -k plus any trailing modifiers as a separate flag.
-   Returns the extracted signal or SIGTERM if none embedded. */
-static int extract_kill_signal(int *argc, char **argv, char *rewrite_buf, 
-                                size_t buf_size) {
+static int extract_kill_signal(int *argc, char **argv, char *rewrite_buf, size_t buf_size) {
     for (int i = 1; i < *argc; i++) {
         if (!argv[i] || argv[i][0] != '-' || argv[i][1] != 'k')
             continue;
@@ -124,7 +119,6 @@ static int extract_kill_signal(int *argc, char **argv, char *rewrite_buf,
         if (sig < 0)
             return -1;
 
-        // rewrite -k9y as -ky so getopt handles the modifiers normally
         if (*p != '\0') {
             snprintf(rewrite_buf, buf_size, "-%s", p);
             argv[i] = rewrite_buf;
@@ -164,8 +158,7 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
     optind = 1;
     int opt, longindex = 0;
 
-    while ((opt = getopt_long(local_argc, argv, short_opts,
-                               long_opts, &longindex)) != -1) {
+    while ((opt = getopt_long(local_argc, argv, short_opts, long_opts, &longindex)) != -1) {
         switch (opt) {
 
         // Operations

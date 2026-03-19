@@ -12,6 +12,8 @@ extern const char _binary_themes_nord_swt_start[];
 extern const char _binary_themes_nord_swt_end[];
 extern const char _binary_themes_gruvbox_swt_start[];
 extern const char _binary_themes_gruvbox_swt_end[];
+extern const char _binary_themes_colibri_swt_start[];
+extern const char _binary_themes_colibri_swt_end[];
 
 typedef struct {
     const char *name;
@@ -20,9 +22,10 @@ typedef struct {
 } theme_entry_t;
 
 static const theme_entry_t theme_table[] = {
-    { "default", _binary_themes_fihsy_swt_start,  _binary_themes_fihsy_swt_end  },
-    { "nord",    _binary_themes_nord_swt_start,    _binary_themes_nord_swt_end   },
+    { "default", _binary_themes_fihsy_swt_start, _binary_themes_fihsy_swt_end  },
+    { "nord", _binary_themes_nord_swt_start, _binary_themes_nord_swt_end   },
     { "gruvbox", _binary_themes_gruvbox_swt_start, _binary_themes_gruvbox_swt_end},
+    { "colibri", _binary_themes_colibri_swt_start, _binary_themes_colibri_swt_end },
     { NULL, NULL, NULL }
 };
 
@@ -59,20 +62,18 @@ static short alloc_hex_color(const char *hex) {
 }
 
 static short parse_color(const char *val) {
-    if (strcmp(val, "black")   == 0) return COLOR_BLACK;
-    if (strcmp(val, "red")     == 0) return COLOR_RED;
-    if (strcmp(val, "green")   == 0) return COLOR_GREEN;
-    if (strcmp(val, "yellow")  == 0) return COLOR_YELLOW;
-    if (strcmp(val, "blue")    == 0) return COLOR_BLUE;
+    if (strcmp(val, "black") == 0) return COLOR_BLACK;
+    if (strcmp(val, "red") == 0) return COLOR_RED;
+    if (strcmp(val, "green") == 0) return COLOR_GREEN;
+    if (strcmp(val, "yellow") == 0) return COLOR_YELLOW;
+    if (strcmp(val, "blue") == 0) return COLOR_BLUE;
     if (strcmp(val, "magenta") == 0) return COLOR_MAGENTA;
-    if (strcmp(val, "cyan")    == 0) return COLOR_CYAN;
-    if (strcmp(val, "white")   == 0) return COLOR_WHITE;
-    if (val[0] == '#')               return alloc_hex_color(val);
-    return -1; // "default" or unknown — use terminal default
+    if (strcmp(val, "cyan") == 0) return COLOR_CYAN;
+    if (strcmp(val, "white") == 0) return COLOR_WHITE;
+    if (val[0] == '#') return alloc_hex_color(val);
+    return -1;
 }
 
-/* Parses a .swt buffer into out, filling only fields present in the file.
-   Caller should pre-fill out with defaults before calling. */
 static void theme_parse(const char *data, size_t len, sw_theme_t *out) {
     const char *p   = data;
     const char *end = data + len;
@@ -102,7 +103,11 @@ static void theme_parse(const char *data, size_t len, sw_theme_t *out) {
 
         const char *val_start = eq + 1;
         while (val_start < line_end && (*val_start == ' ' || *val_start == '\t')) val_start++;
-        const char *val_end = line_end - 1;
+
+        const char *val_end = val_start;
+        while (val_end < line_end && !(*val_end == '#' && val_end > val_start && *(val_end - 1) == ' '))
+            val_end++;
+        val_end--;
         while (val_end > val_start && (*val_end == ' ' || *val_end == '\t' || *val_end == '\r')) val_end--;
 
         char val[32] = {0};
@@ -112,33 +117,32 @@ static void theme_parse(const char *data, size_t len, sw_theme_t *out) {
 
         short color = parse_color(val);
 
-        if      (strcmp(key, "normal_text")          == 0) out->normal_text           = color;
-        else if (strcmp(key, "normal_bg")            == 0) out->normal_bg            = color;
-        else if (strcmp(key, "highlight_text")       == 0) out->highlight_text       = color;
-        else if (strcmp(key, "highlight_bg")         == 0) out->highlight_bg         = color;
-        else if (strcmp(key, "selected_text")        == 0) out->selected_text        = color;
-        else if (strcmp(key, "selected_bg")          == 0) out->selected_bg          = color;
-        else if (strcmp(key, "query_text")           == 0) out->query_text           = color;
-        else if (strcmp(key, "query_bg")             == 0) out->query_bg             = color;
-        else if (strcmp(key, "header_text")          == 0) out->header_text          = color;
-        else if (strcmp(key, "header_bg")            == 0) out->header_bg            = color;
-        else if (strcmp(key, "status_text")          == 0) out->status_text          = color;
-        else if (strcmp(key, "status_bg")            == 0) out->status_bg            = color;
-        else if (strcmp(key, "root_text")            == 0) out->root_text            = color;
-        else if (strcmp(key, "root_bg")              == 0) out->root_bg              = color;
-        else if (strcmp(key, "root_selection_text")  == 0) out->root_selection_text  = color;
-        else if (strcmp(key, "root_selection_bg")    == 0) out->root_selection_bg    = color;
-        else if (strcmp(key, "dim_text")             == 0) out->dim_text             = color;
-        else if (strcmp(key, "dim_bg")               == 0) out->dim_bg               = color;
-        else if (strcmp(key, "title_text")           == 0) out->title_text           = color;
-        else if (strcmp(key, "title_bg")             == 0) out->title_bg             = color;
-        else if (strcmp(key, "popup_text")           == 0) out->popup_text           = color;
-        else if (strcmp(key, "popup_bg")             == 0) out->popup_bg             = color;
-        else if (strcmp(key, "pid_text")             == 0) out->pid_text             = color;
-        else if (strcmp(key, "user_text")            == 0) out->user_text            = color;
-        else if (strcmp(key, "state_text")           == 0) out->state_text           = color;
-        else if (strcmp(key, "ram_text")             == 0) out->ram_text             = color;
-
+        if (strcmp(key, "normal_text") == 0) out->normal_text = color;
+        else if (strcmp(key, "normal_bg") == 0) out->normal_bg = color;
+        else if (strcmp(key, "highlight_text") == 0) out->highlight_text = color;
+        else if (strcmp(key, "highlight_bg") == 0) out->highlight_bg = color;
+        else if (strcmp(key, "selected_text") == 0) out->selected_text = color;
+        else if (strcmp(key, "selected_bg") == 0) out->selected_bg = color;
+        else if (strcmp(key, "query_text") == 0) out->query_text = color;
+        else if (strcmp(key, "query_bg") == 0) out->query_bg = color;
+        else if (strcmp(key, "header_text") == 0) out->header_text = color;
+        else if (strcmp(key, "header_bg") == 0) out->header_bg = color;
+        else if (strcmp(key, "status_text") == 0) out->status_text = color;
+        else if (strcmp(key, "status_bg") == 0) out->status_bg = color;
+        else if (strcmp(key, "root_text") == 0) out->root_text = color;
+        else if (strcmp(key, "root_bg") == 0) out->root_bg = color;
+        else if (strcmp(key, "root_selection_text") == 0) out->root_selection_text = color;
+        else if (strcmp(key, "root_selection_bg") == 0) out->root_selection_bg = color;
+        else if (strcmp(key, "dim_text") == 0) out->dim_text = color;
+        else if (strcmp(key, "dim_bg") == 0) out->dim_bg = color;
+        else if (strcmp(key, "title_text") == 0) out->title_text = color;
+        else if (strcmp(key, "title_bg") == 0) out->title_bg = color;
+        else if (strcmp(key, "popup_text") == 0) out->popup_text = color;
+        else if (strcmp(key, "popup_bg") == 0) out->popup_bg = color;
+        else if (strcmp(key, "pid_text") == 0) out->pid_text = color;
+        else if (strcmp(key, "user_text") == 0) out->user_text = color;
+        else if (strcmp(key, "state_text") == 0) out->state_text = color;
+        else if (strcmp(key, "ram_text") == 0) out->ram_text = color;
         p = line_end + 1;
     }
 }
@@ -161,8 +165,6 @@ void theme_load(const char *name, sw_theme_t *out) {
             return;
         }
     }
-
-    // unknown theme name — default is already loaded, silently continue
 }
 
 void theme_init_custom_colors(void) {

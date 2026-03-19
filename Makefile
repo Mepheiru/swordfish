@@ -35,7 +35,7 @@ THEMES = $(wildcard themes/*.swt)
 THEME_OBJ_DEV = $(THEMES:themes/%.swt=$(DEV_BUILDDIR)/themes_%.o)
 THEME_OBJ_REL = $(THEMES:themes/%.swt=$(REL_BUILDDIR)/themes_%.o)
 
-TEST_SRC     = tests/main.c tests/test_fuzzy.c tests/test_args.c tests/stubs.c
+TEST_SRC     = tests/main.c tests/test_fuzzy.c tests/test_args.c
 TEST_OBJ     = $(TEST_SRC:tests/%.c=$(TEST_BUILDDIR)/%.o)
 # all dev objects except main.o — the test runner supplies its own main
 TEST_OBJ_SRC = $(filter-out $(DEV_BUILDDIR)/main.o, $(OBJ_DEV))

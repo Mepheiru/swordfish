@@ -23,28 +23,28 @@ void test_args(void) {
 
     SUITE("get_signal");
 
-    CHECK(get_signal("9")    == SIGKILL,  "numeric 9 -> SIGKILL");
-    CHECK(get_signal("15")   == SIGTERM,  "numeric 15 -> SIGTERM");
-    CHECK(get_signal("1")    == SIGHUP,   "numeric 1 -> SIGHUP");
-    CHECK(get_signal("TERM") == SIGTERM,  "TERM -> SIGTERM");
-    CHECK(get_signal("HUP")  == SIGHUP,   "HUP -> SIGHUP");
-    CHECK(get_signal("kill") == SIGKILL,  "kill (lowercase) -> SIGKILL");
-    CHECK(get_signal("KILL") == SIGKILL,  "KILL -> SIGKILL");
-    CHECK(get_signal("999")  == -1,       "out-of-range signal returns -1");
-    CHECK(get_signal("FAKE") == -1,       "unknown name returns -1");
+    CHECK(get_signal("9") == SIGKILL, "numeric 9 -> SIGKILL");
+    CHECK(get_signal("15") == SIGTERM, "numeric 15 -> SIGTERM");
+    CHECK(get_signal("1") == SIGHUP, "numeric 1 -> SIGHUP");
+    CHECK(get_signal("TERM") == SIGTERM, "TERM -> SIGTERM");
+    CHECK(get_signal("HUP") == SIGHUP, "HUP -> SIGHUP");
+    CHECK(get_signal("kill") == SIGKILL, "kill (lowercase) -> SIGKILL");
+    CHECK(get_signal("KILL") == SIGKILL, "KILL -> SIGKILL");
+    CHECK(get_signal("999") == -1, "out-of-range signal returns -1");
+    CHECK(get_signal("FAKE") == -1, "unknown name returns -1");
 
     SUITE("parse_args — defaults");
 
     {
         char *argv[] = {"swordfish", "firefox", NULL};
         PARSE(argv, &args);
-        CHECK(args.operation    == SWOP_STATIC, "default operation is SWOP_STATIC");
-        CHECK(args.sig          == SIGTERM,     "default signal is SIGTERM");
-        CHECK(args.sort_mode    == SWSORT_NONE, "default sort mode is SWSORT_NONE");
-        CHECK(args.exact_match  == 0,           "exact_match off by default");
-        CHECK(args.auto_confirm == 0,           "auto_confirm off by default");
-        CHECK(args.dry_run      == 0,           "dry_run off by default");
-        CHECK(args.verbose_level == 0,          "verbose_level 0 by default");
+        CHECK(args.operation == SWOP_STATIC, "default operation is SWOP_STATIC");
+        CHECK(args.sig == SIGTERM, "default signal is SIGTERM");
+        CHECK(args.sort_mode == SWSORT_NONE, "default sort mode is SWSORT_NONE");
+        CHECK(args.exact_match == 0, "exact_match off by default");
+        CHECK(args.auto_confirm == 0, "auto_confirm off by default");
+        CHECK(args.dry_run == 0, "dry_run off by default");
+        CHECK(args.verbose_level == 0, "verbose_level 0 by default");
     }
 
     SUITE("parse_args — operations");

@@ -3,8 +3,6 @@
 #include "main.h"
 #include "theme.h"
 
-// must be a macro — inline asm operand constraints require an addressable lvalue,
-// which a function parameter doesn't guarantee at every call site
 #if defined(__x86_64__)
 #  define PREFETCH(p) __asm__ volatile("prefetcht0 %0"::"m"(*(const char*)(p)))
 #else
@@ -17,32 +15,32 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define QUERY_HEIGHT  3
+#define QUERY_HEIGHT 3
 #define STATUS_HEIGHT 1
 
-#define COL_PID_W   7
-#define COL_NAME_W  20
-#define COL_USER_W  12
+#define COL_PID_W 7
+#define COL_NAME_W 20
+#define COL_USER_W 12
 #define COL_STATE_W 6
-#define COL_RAM_W   10
+#define COL_RAM_W 10
 
-#define PAIR_NORMAL        1
-#define PAIR_HIGHLIGHT     2
-#define PAIR_SELECTED      3
-#define PAIR_QUERY         4
-#define PAIR_HEADER        5
-#define PAIR_STATUS        6
-#define PAIR_DIM           7
-#define PAIR_TITLE         8
-#define PAIR_POPUP         9
+#define PAIR_NORMAL 1
+#define PAIR_HIGHLIGHT 2
+#define PAIR_SELECTED 3
+#define PAIR_QUERY 4
+#define PAIR_HEADER 5
+#define PAIR_STATUS 6
+#define PAIR_DIM 7
+#define PAIR_TITLE 8
+#define PAIR_POPUP 9
 // root pairs bake the correct bg so switching mid-row doesn't clobber row bg
-#define PAIR_ROOT_NORMAL   10
+#define PAIR_ROOT_NORMAL 10
 #define PAIR_ROOT_SELECTED 11
-// per-column text pairs — bg always inherits normal_bg
-#define PAIR_PID           12
-#define PAIR_USER          13
-#define PAIR_STATE         14
-#define PAIR_RAM           15
+// per-column text pairs - bg always inherits normal_bg
+#define PAIR_PID 12
+#define PAIR_USER 13
+#define PAIR_STATE 14
+#define PAIR_RAM 15
 
 static void tui_apply_theme(tui_state_t *s, const char *name);
 static void tui_init_colors(const sw_theme_t *t);
@@ -61,10 +59,10 @@ static void tui_query_insert(tui_state_t *s, char c);
 static void tui_query_backspace(tui_state_t *s);
 static void tui_cursor_move(tui_state_t *s, int delta);
 static void tui_scroll_to_cursor(tui_state_t *s);
-static int  tui_list_height(void);
+static int tui_list_height(void);
 static void fmt_ram(char *buf, size_t len, long ram_mb);
-static int  cmp_rows_ram(const void *a, const void *b);
-static int  cmp_rows_score(const void *a, const void *b);
+static int cmp_rows_ram(const void *a, const void *b);
+static int cmp_rows_score(const void *a, const void *b);
 static void tui_mark_all_dirty(tui_state_t *s);
 static bool tui_is_selected(const tui_state_t *s, pid_t pid);
 static void tui_selection_toggle(tui_state_t *s, pid_t pid);
@@ -91,23 +89,23 @@ static void tui_init_colors(const sw_theme_t *t) {
     start_color();
     use_default_colors();
     theme_init_custom_colors();
-    init_pair(PAIR_NORMAL,        t->normal_text,         t->normal_bg);
-    init_pair(PAIR_HIGHLIGHT,     t->highlight_text,      t->highlight_bg);
-    init_pair(PAIR_SELECTED,      t->selected_text,       t->selected_bg);
-    init_pair(PAIR_QUERY,         t->query_text,          t->query_bg);
-    init_pair(PAIR_HEADER,        t->header_text,         t->header_bg);
-    init_pair(PAIR_STATUS,        t->status_text,         t->status_bg);
-    init_pair(PAIR_DIM,           t->dim_text,            t->dim_bg);
-    init_pair(PAIR_TITLE,         t->title_text,          t->title_bg);
-    init_pair(PAIR_POPUP,         t->popup_text,          t->popup_bg);
-    // root pairs bake root_text against the appropriate bg
-    init_pair(PAIR_ROOT_NORMAL,   t->root_text,           t->root_bg);
+    init_pair(PAIR_NORMAL, t->normal_text, t->normal_bg);
+    init_pair(PAIR_HIGHLIGHT, t->highlight_text, t->highlight_bg);
+    init_pair(PAIR_SELECTED, t->selected_text, t->selected_bg);
+    init_pair(PAIR_QUERY, t->query_text, t->query_bg);
+    init_pair(PAIR_HEADER, t->header_text, t->header_bg);
+    init_pair(PAIR_STATUS, t->status_text, t->status_bg);
+    init_pair(PAIR_DIM, t->dim_text, t->dim_bg);
+    init_pair(PAIR_TITLE, t->title_text, t->title_bg);
+    init_pair(PAIR_POPUP, t->popup_text, t->popup_bg);
+
+    init_pair(PAIR_ROOT_NORMAL, t->root_text, t->root_bg);
     init_pair(PAIR_ROOT_SELECTED, t->root_selection_text, t->root_selection_bg);
-    // column pairs use normal_bg so they blend with the row background
-    init_pair(PAIR_PID,           t->pid_text,            t->normal_bg);
-    init_pair(PAIR_USER,          t->user_text,           t->normal_bg);
-    init_pair(PAIR_STATE,         t->state_text,          t->normal_bg);
-    init_pair(PAIR_RAM,           t->ram_text,            t->normal_bg);
+
+    init_pair(PAIR_PID, t->pid_text, t->normal_bg);
+    init_pair(PAIR_USER, t->user_text, t->normal_bg);
+    init_pair(PAIR_STATE, t->state_text, t->normal_bg);
+    init_pair(PAIR_RAM, t->ram_text, t->normal_bg);
 }
 
 static void tui_apply_theme(tui_state_t *s, const char *name) {
@@ -117,8 +115,8 @@ static void tui_apply_theme(tui_state_t *s, const char *name) {
     strncpy(s->active_theme, name ? name : "default", sizeof(s->active_theme) - 1);
 
     // re-stamp backgrounds on all windows with the new color pairs
-    if (s->win_query)  wbkgd(s->win_query,  COLOR_PAIR(PAIR_NORMAL));
-    if (s->win_list)   wbkgd(s->win_list,   COLOR_PAIR(PAIR_NORMAL));
+    if (s->win_query) wbkgd(s->win_query, COLOR_PAIR(PAIR_NORMAL));
+    if (s->win_list) wbkgd(s->win_list, COLOR_PAIR(PAIR_NORMAL));
     if (s->win_status) wbkgd(s->win_status, COLOR_PAIR(PAIR_STATUS));
 
     tui_mark_all_dirty(s);
@@ -139,13 +137,13 @@ static int tui_list_height(void) {
 
 static void tui_init_windows(tui_state_t *s) {
     int list_h = LINES - QUERY_HEIGHT - STATUS_HEIGHT;
-    s->win_query  = newwin(QUERY_HEIGHT,  COLS, 0, 0);
-    s->win_list   = newwin(list_h,        COLS, QUERY_HEIGHT, 0);
+    s->win_query = newwin(QUERY_HEIGHT, COLS, 0, 0);
+    s->win_list = newwin(list_h, COLS, QUERY_HEIGHT, 0);
     s->win_status = newwin(STATUS_HEIGHT, COLS, LINES - STATUS_HEIGHT, 0);
     keypad(s->win_list, TRUE);
 
-    wbkgd(s->win_query,  COLOR_PAIR(PAIR_NORMAL));
-    wbkgd(s->win_list,   COLOR_PAIR(PAIR_NORMAL));
+    wbkgd(s->win_query, COLOR_PAIR(PAIR_NORMAL));
+    wbkgd(s->win_list, COLOR_PAIR(PAIR_NORMAL));
     wbkgd(s->win_status, COLOR_PAIR(PAIR_STATUS));
 }
 
@@ -158,8 +156,8 @@ static void tui_resize(tui_state_t *s) {
 }
 
 static void tui_cleanup_windows(tui_state_t *s) {
-    if (s->win_query)  { delwin(s->win_query);  s->win_query  = NULL; }
-    if (s->win_list)   { delwin(s->win_list);   s->win_list   = NULL; }
+    if (s->win_query) { delwin(s->win_query); s->win_query = NULL; }
+    if (s->win_list) { delwin(s->win_list); s->win_list = NULL; }
     if (s->win_status) { delwin(s->win_status); s->win_status = NULL; }
 }
 
@@ -188,8 +186,8 @@ static void tui_rebuild_rows(tui_state_t *s) {
             continue;
         }
 
-        int name_score = fuzzy_score(s->query, p->name,    FUZZY_CTX_NAME);
-        int cmd_score  = fuzzy_score(s->query, p->cmdline, FUZZY_CTX_CMDLINE);
+        int name_score = fuzzy_score(s->query, p->name, FUZZY_CTX_NAME);
+        int cmd_score = fuzzy_score(s->query, p->cmdline, FUZZY_CTX_CMDLINE);
 
         int score = -1;
         if (name_score >= 0) score = name_score;
@@ -219,7 +217,7 @@ static void tui_render_query(tui_state_t *s) {
     werase(w);
 
     wattron(w, COLOR_PAIR(PAIR_TITLE) | A_BOLD);
-    mvwaddstr(w, 0, 0, "Swordfish fuzzy process finder");
+    mvwaddstr(w, 0, 0, "Swordfish fuzzy process finder (sfpf)");
     wattroff(w, COLOR_PAIR(PAIR_TITLE) | A_BOLD);
 
     mvwaddstr(w, 1, 0, "  > ");
@@ -239,7 +237,7 @@ static void tui_render_list(tui_state_t *s) {
     int height = tui_list_height();
     werase(w);
 
-    // header is constant — format once and reuse
+    // header is constant - format once and reuse
     static char header_buf[256] = {0};
     if (!header_buf[0])
         snprintf(header_buf, sizeof(header_buf), " %-*s %-*s %-*s %-*s %s",
@@ -267,18 +265,18 @@ static void tui_render_list(tui_state_t *s) {
         const tui_row_t *row = &s->rows[idx];
         const process_info_t *p = row->proc;
 
-        bool is_cursor   = (idx == s->cursor);
+        bool is_cursor = (idx == s->cursor);
         bool is_selected = tui_is_selected(s, p->pid);
-        bool is_root     = (strcmp(p->owner, "root") == 0);
-        int  row_y       = i + 1;
-        int  bold        = is_cursor ? A_BOLD : 0;
+        bool is_root = (strcmp(p->owner, "root") == 0);
+        int row_y = i + 1;
+        int bold = is_cursor ? A_BOLD : 0;
 
         // on cursor/selected rows everything uses the row base pair
         // on normal rows each column uses its own pair
         bool col = !is_cursor && !is_selected;
-        int  pair_base = is_cursor ? PAIR_HIGHLIGHT : (is_selected ? PAIR_SELECTED : PAIR_NORMAL);
+        int pair_base = is_cursor ? PAIR_HIGHLIGHT : (is_selected ? PAIR_SELECTED : PAIR_NORMAL);
 
-        // sel marker — always base pair
+        // sel marker - always base pair
         wattron(w, COLOR_PAIR(pair_base) | bold);
         mvwaddstr(w, row_y, 0, is_selected ? "  " : " ");
 
@@ -288,14 +286,14 @@ static void tui_render_list(tui_state_t *s) {
         wattron(w, COLOR_PAIR(col ? PAIR_PID : pair_base) | bold);
         waddnstr(w, pid_buf, COL_PID_W + 1);
 
-        // process name — root gets its own pair on normal rows
+        // process name - root gets its own pair on normal rows
         char name_buf[COL_NAME_W + 2];
         snprintf(name_buf, sizeof(name_buf), "%-*.*s ", COL_NAME_W, COL_NAME_W, p->name);
         int name_pair;
-        if      (is_cursor)             name_pair = PAIR_HIGHLIGHT;
+        if (is_cursor) name_pair = PAIR_HIGHLIGHT;
         else if (is_root && is_selected) name_pair = PAIR_ROOT_SELECTED;
-        else if (is_root)               name_pair = PAIR_ROOT_NORMAL;
-        else                            name_pair = pair_base;
+        else if (is_root) name_pair = PAIR_ROOT_NORMAL;
+        else name_pair = pair_base;
         wattron(w, COLOR_PAIR(name_pair) | bold);
         waddnstr(w, name_buf, COL_NAME_W + 1);
 
@@ -390,7 +388,7 @@ static void tui_render_confirm(tui_state_t *s) {
 
     delwin(popup);
 
-    /* force immediate redraw so the popup doesn't ghost until next keypress */
+    // force immediate redraw so the popup doesn't ghost until next keypress
     clearok(curscr, TRUE);
     tui_mark_all_dirty(s);
     tui_render_query(s);
@@ -402,10 +400,22 @@ static void tui_render_confirm(tui_state_t *s) {
 static void tui_render_theme_picker(tui_state_t *s) {
     int count = theme_count();
 
-    const int w_width  = 36;
-    const int w_height = count + 6;
+    // start cursor on the currently active theme
+    for (int i = 0; i < count; i++) {
+        if (strcmp(theme_name_at(i), s->active_theme) == 0) {
+            s->theme_picker_cursor = i;
+            break;
+        }
+    }
+
+    // remember what was active so Esc can restore it
+    char prev_theme[64];
+    strncpy(prev_theme, s->active_theme, sizeof(prev_theme) - 1);
+
+    const int w_width = 36;
+    const int w_height = count + 5;
     int w_y = (LINES - w_height) / 2;
-    int w_x = (COLS  - w_width)  / 2;
+    int w_x = (COLS - w_width) / 2;
 
     WINDOW *popup = newwin(w_height, w_width, w_y, w_x);
     wbkgd(popup, COLOR_PAIR(PAIR_POPUP));
@@ -415,27 +425,24 @@ static void tui_render_theme_picker(tui_state_t *s) {
         werase(popup);
         wattron(popup, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
         box(popup, 0, 0);
-        mvwaddstr(popup, 0, (w_width - 7) / 2, " Theme ");
+        mvwaddstr(popup, 0, (w_width - 8) / 2, " Themes ");
         wattroff(popup, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
 
         for (int i = 0; i < count; i++) {
             const char *name = theme_name_at(i);
-            bool is_active = (strcmp(name, s->active_theme) == 0);
-            bool is_cur    = (i == s->theme_picker_cursor);
+            bool is_cur = (i == s->theme_picker_cursor);
 
             if (is_cur) wattron(popup, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
-            else        wattron(popup, COLOR_PAIR(PAIR_POPUP));
+            else wattron(popup, COLOR_PAIR(PAIR_POPUP));
 
-            mvwprintw(popup, i + 1, 2, " %-*s%s",
-                      w_width - 7, name, is_active ? " *" : "  ");
+            mvwprintw(popup, i + 1, 2, " %-*s", w_width - 5, name);
 
             if (is_cur) wattroff(popup, COLOR_PAIR(PAIR_HIGHLIGHT) | A_BOLD);
-            else        wattroff(popup, COLOR_PAIR(PAIR_POPUP));
+            else wattroff(popup, COLOR_PAIR(PAIR_POPUP));
         }
 
         wattron(popup, COLOR_PAIR(PAIR_DIM) | A_DIM);
-        mvwaddstr(popup, count + 2, 2, "Enter: apply   Esc: close");
-        // theme picker is experimental — warn the user
+        mvwaddstr(popup, count + 2, 2, "Enter: apply   Esc: cancel");
         mvwaddstr(popup, count + 3, 2, "* theme picker is in testing");
         wattroff(popup, COLOR_PAIR(PAIR_DIM) | A_DIM);
 
@@ -445,23 +452,28 @@ static void tui_render_theme_picker(tui_state_t *s) {
         int ch = wgetch(popup);
         switch (ch) {
         case KEY_UP:
-            if (s->theme_picker_cursor > 0) s->theme_picker_cursor--;
+            s->theme_picker_cursor = (s->theme_picker_cursor == 0)
+                ? count - 1
+                : s->theme_picker_cursor - 1;
+            tui_apply_theme(s, theme_name_at(s->theme_picker_cursor));
             break;
         case KEY_DOWN:
-            if (s->theme_picker_cursor < count - 1) s->theme_picker_cursor++;
+            s->theme_picker_cursor = (s->theme_picker_cursor == count - 1)
+                ? 0
+                : s->theme_picker_cursor + 1;
+            tui_apply_theme(s, theme_name_at(s->theme_picker_cursor));
             break;
         case '\n':
-        case KEY_ENTER: {
-            const char *chosen = theme_name_at(s->theme_picker_cursor);
-            if (chosen) tui_apply_theme(s, chosen);
+        case KEY_ENTER:
             s->picking_theme = false;
             break;
-        }
         case 27: // Esc
         case 'q':
+            tui_apply_theme(s, prev_theme);
             s->picking_theme = false;
             break;
         case KEY_RESIZE:
+            tui_apply_theme(s, prev_theme);
             s->picking_theme = false;
             tui_resize(s);
             break;
@@ -470,7 +482,6 @@ static void tui_render_theme_picker(tui_state_t *s) {
 
     delwin(popup);
 
-    /* force full redraw after popup closes */
     clearok(curscr, TRUE);
     tui_mark_all_dirty(s);
     tui_render_query(s);
@@ -480,14 +491,14 @@ static void tui_render_theme_picker(tui_state_t *s) {
 }
 
 static void tui_mark_all_dirty(tui_state_t *s) {
-    s->dirty_query  = true;
-    s->dirty_list   = true;
+    s->dirty_query = true;
+    s->dirty_list = true;
     s->dirty_status = true;
 }
 
 static void tui_render(tui_state_t *s) {
-    if (s->dirty_query)  { tui_render_query(s);  s->dirty_query  = false; }
-    if (s->dirty_list)   { tui_render_list(s);   s->dirty_list   = false; }
+    if (s->dirty_query) { tui_render_query(s); s->dirty_query = false; }
+    if (s->dirty_list) { tui_render_list(s); s->dirty_list = false; }
     if (s->dirty_status) { tui_render_status(s); s->dirty_status = false; }
     doupdate();
 
@@ -549,22 +560,22 @@ static void tui_handle_input(tui_state_t *s, int ch) {
         s->picking_theme = true;
         break;
 
-    case KEY_UP:    tui_cursor_move(s, -1); break;
-    case KEY_DOWN:  tui_cursor_move(s, +1); break;
+    case KEY_UP: tui_cursor_move(s, -1); break;
+    case KEY_DOWN: tui_cursor_move(s, +1); break;
     case KEY_PPAGE: tui_cursor_move(s, -tui_list_height()); break;
     case KEY_NPAGE: tui_cursor_move(s, +tui_list_height()); break;
-    case KEY_HOME:  s->cursor = 0; tui_scroll_to_cursor(s); s->dirty_list = true; break;
-    case KEY_END:   s->cursor = s->row_count > 0 ? s->row_count - 1 : 0; tui_scroll_to_cursor(s); s->dirty_list = true; break;
+    case KEY_HOME: s->cursor = 0; tui_scroll_to_cursor(s); s->dirty_list = true; break;
+    case KEY_END: s->cursor = s->row_count > 0 ? s->row_count - 1 : 0; tui_scroll_to_cursor(s); s->dirty_list = true; break;
 
     case '\t':
         if (s->row_count > 0) {
             tui_selection_toggle(s, s->rows[s->cursor].proc->pid);
-            s->dirty_list   = true;
+            s->dirty_list = true;
             s->dirty_status = true;
         }
         break;
 
-    case 4:  tui_cursor_move(s, +tui_list_height() / 2); break; // Ctrl-D
+    case 4: tui_cursor_move(s, +tui_list_height() / 2); break; // Ctrl-D
     case 21: tui_cursor_move(s, -tui_list_height() / 2); break; // Ctrl-U
 
     case 1: // Ctrl-A

@@ -4,7 +4,7 @@
 #include <string.h>
 
 void test_fuzzy(void) {
-    SUITE("fuzzy_score — basic");
+    SUITE("fuzzy_score -- basic");
 
     // empty pattern is defined as 0, not a match failure
     CHECK(fuzzy_score("", "firefox", FUZZY_CTX_NAME) == 0,
@@ -22,11 +22,11 @@ void test_fuzzy(void) {
     CHECK(fuzzy_score("firefoxbrowser", "firefox", FUZZY_CTX_NAME) == -1,
           "overlong unmatched pattern returns -1");
 
-    SUITE("fuzzy_score — scoring order");
+    SUITE("fuzzy_score -- scoring order");
 
     // exact match should outscore a prefix match on the same string
-    int exact  = fuzzy_score("firefox", "firefox", FUZZY_CTX_NAME);
-    int prefix = fuzzy_score("fire",    "firefox", FUZZY_CTX_NAME);
+    int exact = fuzzy_score("firefox", "firefox", FUZZY_CTX_NAME);
+    int prefix = fuzzy_score("fire", "firefox", FUZZY_CTX_NAME);
     CHECK(exact > prefix, "exact match outscores prefix match");
 
     // prefix match should outscore a mid-string match
@@ -34,18 +34,18 @@ void test_fuzzy(void) {
     CHECK(prefix > mid, "prefix match outscores mid-string match");
 
     // consecutive characters should outscore scattered ones
-    int consec    = fuzzy_score("fir", "firefox", FUZZY_CTX_NAME);
+    int consec = fuzzy_score("fir", "firefox", FUZZY_CTX_NAME);
     int scattered = fuzzy_score("ffx", "firefox", FUZZY_CTX_NAME);
     CHECK(consec > scattered, "consecutive match outscores scattered match");
 
-    SUITE("fuzzy_score — context bonus");
+    SUITE("fuzzy_score -- context bonus");
 
     // FUZZY_CTX_NAME adds 50, so the same pattern scores higher against name ctx
     int name_score = fuzzy_score("fire", "firefox", FUZZY_CTX_NAME);
-    int cmd_score  = fuzzy_score("fire", "firefox", FUZZY_CTX_CMDLINE);
+    int cmd_score = fuzzy_score("fire", "firefox", FUZZY_CTX_CMDLINE);
     CHECK(name_score > cmd_score, "name ctx scores higher than cmdline ctx");
 
-    SUITE("fuzzy_score — substitution");
+    SUITE("fuzzy_score -- substitution");
 
     // substitution only applies for patterns >= 5 chars
     CHECK(fuzzy_score("abcd", "abce", FUZZY_CTX_NAME) == -1,
@@ -67,8 +67,8 @@ void test_fuzzy(void) {
     process_info_t root_proc = {0};
     strncpy(root_proc.owner, "root", sizeof(root_proc.owner) - 1);
     int root_score = fuzzy_apply_proc_bonus(100, &root_proc);
-    CHECK(root_score < 100,  "root process receives penalty");
-    CHECK(root_score == 70,  "root penalty is exactly -30");
+    CHECK(root_score < 100, "root process receives penalty");
+    CHECK(root_score == 70, "root penalty is exactly -30");
 
     // RAM bonus caps at 20
     process_info_t ram_proc = {0};

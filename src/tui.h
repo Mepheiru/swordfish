@@ -11,7 +11,7 @@
 
 typedef struct {
     pid_t selected_pids[TUI_MAX_SELECT];
-    int   count;
+    int count;
 } tui_result_t;
 
 typedef struct {
@@ -31,7 +31,7 @@ typedef struct {
     int row_count;
 
     pid_t selected_pids_set[TUI_MAX_SELECT];
-    int   selected_count;
+    int selected_count;
 
     int cursor;
     int scroll;
@@ -48,10 +48,8 @@ typedef struct {
     bool dirty_status;
 
     bool picking_theme;
-    int  theme_picker_cursor;
+    int theme_picker_cursor;
     char active_theme[64];
 } tui_state_t;
 
-tui_result_t tui_run(const swordfish_args_t *args,
-                     const process_info_t  *procs,
-                     int                    count);
+tui_result_t tui_run(const swordfish_args_t *args, const process_info_t *procs, int count);

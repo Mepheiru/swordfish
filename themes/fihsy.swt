@@ -7,10 +7,10 @@ highlight_text = black
 highlight_bg   = cyan
 
 selected_text  = green
-selected_bg    = default
+selected_bg    = #181818
 
-query_text     = cyan
-query_bg       = default
+query_text     = #c5c8c6
+query_bg       = #181818
 
 header_text    = black
 header_bg      = white
@@ -19,20 +19,20 @@ status_text    = black
 status_bg      = white
 
 root_text            = yellow
-root_bg              = default
+root_bg              = #181818
 root_selection_text  = yellow
-root_selection_bg    = default
+root_selection_bg    = #181818
 
 dim_text       = #8a8f99
-dim_bg         = default
+dim_bg         = #181818
 
 title_text     = cyan
-title_bg       = default
+title_bg       = #181818
 
-popup_text     = white
-popup_bg       = default
+popup_text     = #c5c8c6
+popup_bg       = #181818
 
 pid_text       = #8a8f99
-user_text      = white
-state_text     = white
-ram_text       = white
+user_text      = #c5c8c6
+state_text     = #c5c8c6
+ram_text       = #c5c8c6

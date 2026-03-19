@@ -59,14 +59,14 @@ typedef struct {
     short int verbose_level;
     swordfish_op_t operation;
     swordfish_sort_mode_t sort_mode;
-    unsigned int exact_match     : 1;
-    unsigned int auto_confirm    : 1;
-    unsigned int print_pids_only : 1;
-    unsigned int top_only        : 1;
-    unsigned int hide_root       : 1;
-    unsigned int dry_run         : 1;
-    unsigned int wait_for_death  : 1;
-    unsigned int kill_after_select : 1;
+    unsigned int exact_match: 1;
+    unsigned int auto_confirm: 1;
+    unsigned int print_pids_only: 1;
+    unsigned int top_only: 1;
+    unsigned int hide_root: 1;
+    unsigned int dry_run: 1;
+    unsigned int wait_for_death: 1;
+    unsigned int kill_after_select: 1;
 } swordfish_args_t;
 
 int parse_args(int *argc, char **argv, swordfish_args_t *args);
