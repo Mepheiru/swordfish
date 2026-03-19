@@ -142,9 +142,17 @@ static void theme_parse(const char *data, size_t len, sw_theme_t *out) {
         else if (strcmp(key, "dim_popup_text") == 0) out->dim_popup_text = color;
         else if (strcmp(key, "dim_popup_bg") == 0) out->dim_popup_bg = color;
         else if (strcmp(key, "pid_text") == 0) out->pid_text = color;
+        else if (strcmp(key, "pid_selected_text") == 0) out->pid_selected_text = color;
+        else if (strcmp(key, "pid_highlight_text") == 0) out->pid_highlight_text = color;
         else if (strcmp(key, "user_text") == 0) out->user_text = color;
+        else if (strcmp(key, "user_selected_text") == 0) out->user_selected_text = color;
+        else if (strcmp(key, "user_highlight_text") == 0) out->user_highlight_text = color;
         else if (strcmp(key, "state_text") == 0) out->state_text = color;
+        else if (strcmp(key, "state_selected_text") == 0) out->state_selected_text = color;
+        else if (strcmp(key, "state_highlight_text") == 0) out->state_highlight_text = color;
         else if (strcmp(key, "ram_text") == 0) out->ram_text = color;
+        else if (strcmp(key, "ram_selected_text") == 0) out->ram_selected_text = color;
+        else if (strcmp(key, "ram_highlight_text") == 0) out->ram_highlight_text = color;
         p = line_end + 1;
     }
 }

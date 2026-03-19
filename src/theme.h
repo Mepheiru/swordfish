@@ -15,10 +15,18 @@ typedef struct {
     short title_text, title_bg;
     short popup_text, popup_bg;
     short dim_popup_text, dim_popup_bg;
-    short pid_text; // inherits normal_bg
-    short user_text; // inherits normal_bg
-    short state_text; // inherits normal_bg
-    short ram_text; // inherits normal_bg
+    short pid_text;
+    short pid_selected_text;
+    short pid_highlight_text;
+    short user_text;
+    short user_selected_text;
+    short user_highlight_text;
+    short state_text;
+    short state_selected_text;
+    short state_highlight_text;
+    short ram_text;
+    short ram_selected_text;
+    short ram_highlight_text;
 } sw_theme_t;
 
 void theme_load(const char *name, sw_theme_t *out);

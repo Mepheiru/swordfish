@@ -43,6 +43,14 @@
 #define PAIR_USER 13
 #define PAIR_STATE 14
 #define PAIR_RAM 15
+#define PAIR_PID_SELECTED 17
+#define PAIR_PID_HIGHLIGHT 18
+#define PAIR_USER_SELECTED 19
+#define PAIR_USER_HIGHLIGHT 20
+#define PAIR_STATE_SELECTED 21
+#define PAIR_STATE_HIGHLIGHT 22
+#define PAIR_RAM_SELECTED 23
+#define PAIR_RAM_HIGHLIGHT 24
 
 static void tui_apply_theme(tui_state_t *s, const char *name);
 static void tui_init_colors(const sw_theme_t *t);
@@ -108,10 +116,19 @@ static void tui_init_colors(const sw_theme_t *t) {
     init_pair(PAIR_ROOT_NORMAL, t->root_text, t->root_bg);
     init_pair(PAIR_ROOT_SELECTED, t->root_selection_text, t->root_selection_bg);
 
-    init_pair(PAIR_PID, t->pid_text, t->normal_bg);
-    init_pair(PAIR_USER, t->user_text, t->normal_bg);
+    init_pair(PAIR_PID,   t->pid_text,   t->normal_bg);
+    init_pair(PAIR_USER,  t->user_text,  t->normal_bg);
     init_pair(PAIR_STATE, t->state_text, t->normal_bg);
-    init_pair(PAIR_RAM, t->ram_text, t->normal_bg);
+    init_pair(PAIR_RAM,   t->ram_text,   t->normal_bg);
+
+    init_pair(PAIR_PID_SELECTED,    t->pid_selected_text,    t->selected_bg);
+    init_pair(PAIR_PID_HIGHLIGHT,   t->pid_highlight_text,   t->highlight_bg);
+    init_pair(PAIR_USER_SELECTED,   t->user_selected_text,   t->selected_bg);
+    init_pair(PAIR_USER_HIGHLIGHT,  t->user_highlight_text,  t->highlight_bg);
+    init_pair(PAIR_STATE_SELECTED,  t->state_selected_text,  t->selected_bg);
+    init_pair(PAIR_STATE_HIGHLIGHT, t->state_highlight_text, t->highlight_bg);
+    init_pair(PAIR_RAM_SELECTED,    t->ram_selected_text,    t->selected_bg);
+    init_pair(PAIR_RAM_HIGHLIGHT,   t->ram_highlight_text,   t->highlight_bg);
 }
 
 static void tui_apply_theme(tui_state_t *s, const char *name) {
@@ -276,9 +293,6 @@ static void tui_render_list(tui_state_t *s) {
         int row_y = i + 1;
         int bold = is_cursor ? A_BOLD : 0;
 
-        // on cursor/selected rows everything uses the row base pair
-        // on normal rows each column uses its own pair
-        bool col = !is_cursor && !is_selected;
         int pair_base = is_cursor ? PAIR_HIGHLIGHT : (is_selected ? PAIR_SELECTED : PAIR_NORMAL);
 
         // sel marker - always base pair
@@ -288,7 +302,8 @@ static void tui_render_list(tui_state_t *s) {
         // pid number
         char pid_buf[COL_PID_W + 2];
         snprintf(pid_buf, sizeof(pid_buf), "%-*d ", COL_PID_W, p->pid);
-        wattron(w, COLOR_PAIR(col ? PAIR_PID : pair_base) | bold);
+        int pid_pair = is_cursor ? PAIR_PID_HIGHLIGHT : (is_selected ? PAIR_PID_SELECTED : PAIR_PID);
+        wattron(w, COLOR_PAIR(pid_pair) | bold);
         waddnstr(w, pid_buf, COL_PID_W + 1);
 
         // process name
@@ -305,13 +320,15 @@ static void tui_render_list(tui_state_t *s) {
         // user
         char user_buf[COL_USER_W + 2];
         snprintf(user_buf, sizeof(user_buf), "%-*.*s ", COL_USER_W, COL_USER_W, p->owner);
-        wattron(w, COLOR_PAIR(col ? PAIR_USER : pair_base) | bold);
+        int user_pair = is_cursor ? PAIR_USER_HIGHLIGHT : (is_selected ? PAIR_USER_SELECTED : PAIR_USER);
+        wattron(w, COLOR_PAIR(user_pair) | bold);
         waddnstr(w, user_buf, COL_USER_W + 1);
 
         // state
         char state_buf[COL_STATE_W + 2];
         snprintf(state_buf, sizeof(state_buf), "%-*c ", COL_STATE_W, p->status.state);
-        wattron(w, COLOR_PAIR(col ? PAIR_STATE : pair_base) | bold);
+        int state_pair = is_cursor ? PAIR_STATE_HIGHLIGHT : (is_selected ? PAIR_STATE_SELECTED : PAIR_STATE);
+        wattron(w, COLOR_PAIR(state_pair) | bold);
         waddnstr(w, state_buf, COL_STATE_W + 1);
 
         // ram
@@ -319,7 +336,8 @@ static void tui_render_list(tui_state_t *s) {
         fmt_ram(ram_buf, sizeof(ram_buf), p->ram);
         char ram_col[COL_RAM_W + 1];
         snprintf(ram_col, sizeof(ram_col), "%-*.*s", COL_RAM_W, COL_RAM_W, ram_buf);
-        wattron(w, COLOR_PAIR(col ? PAIR_RAM : pair_base) | bold);
+        int ram_pair = is_cursor ? PAIR_RAM_HIGHLIGHT : (is_selected ? PAIR_RAM_SELECTED : PAIR_RAM);
+        wattron(w, COLOR_PAIR(ram_pair) | bold);
         waddnstr(w, ram_col, COL_RAM_W);
 
         // restore base pair for wclrtoeol so remainder of row has correct bg

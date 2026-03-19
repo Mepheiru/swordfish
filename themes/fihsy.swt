@@ -17,8 +17,8 @@ query_bg       = #181818
 header_text    = black
 header_bg      = white
 
-status_text = black
-status_bg = white
+status_text    = black
+status_bg      = white
 
 root_text           = yellow
 root_bg             = #181818
@@ -37,7 +37,18 @@ title_bg       = #181818
 popup_text     = #c5c8c6
 popup_bg       = #181818
 
-pid_text       = #8a8f99
-user_text      = #c5c8c6
-state_text     = #c5c8c6
-ram_text       = #c5c8c6
+pid_text            = #8a8f99
+pid_selected_text   = green
+pid_highlight_text  = black
+
+user_text           = #c5c8c6
+user_selected_text  = green
+user_highlight_text = black
+
+state_text           = #c5c8c6
+state_selected_text  = green
+state_highlight_text = black
+
+ram_text            = #c5c8c6
+ram_selected_text   = green
+ram_highlight_text  = black
