@@ -8,8 +8,8 @@
 # "make test" to run the test suite
 
 CC ?= gcc
-CFLAGS_DEV ?= -Wall -Wextra -g -std=gnu11
-CFLAGS_REL ?= -Wall -Wextra -Werror -O3 -std=gnu11
+override CFLAGS_DEV = -Wall -Wextra -g -std=gnu11
+override CFLAGS_REL = -Wall -Wextra -Werror -O3 -std=gnu11
 LDFLAGS += -lncurses
 
 PREFIX ?= /usr/local
