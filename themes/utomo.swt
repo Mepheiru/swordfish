@@ -1,65 +1,66 @@
 # tempe inspired by youll never guess tempe from mau makan apa? :3
 # by mepheiru
+# light variant
 
-# #242424
-# #fcfaf6 - fur color
+# #fcfaf6 - bg (was fur color)
+# #242424 - main text (was bg)
 # #ff1119 - fur accent
 # #ad6283 - tounge / tie
 # #7c6a6b - shirt
 # #6e7fb9 - undershirt
 # #fda5aa - paws
 
-normal_text          = #fcfaf6
-normal_bg            = #242424
+normal_text          = #242424
+normal_bg            = #fcfaf6
 
 highlight_text       = #6e7fb9
-highlight_bg         = #242424
+highlight_bg         = #fcfaf6
 
 selected_text        = #fcfaf6
 selected_bg          = #ad6283
 
-query_text           = #242424
+query_text           = #fcfaf6
 query_bg             = #ff1119
 
-header_text          = #fda5aa
-header_bg            = #242424
+header_text          = #ad6283
+header_bg            = #fcfaf6
 
-status_text          = #fcfaf6
-status_bg            = #242424
+status_text          = #242424
+status_bg            = #fcfaf6
 
 root_text            = #ff1119
-root_bg              = #242424
+root_bg              = #fcfaf6
 
 root_selection_text  = #ff1119
-root_selection_bg    = #242424
+root_selection_bg    = #fcfaf6
 
 root_highlight_text  = #ff1119
-root_highlight_bg    = #242424
+root_highlight_bg    = #fcfaf6
 
 dim_text             = #7c6a6b
-dim_bg               = #242424
+dim_bg               = #fcfaf6
 
 dim_popup_text       = #ad6283
-dim_popup_bg         = #242424
+dim_popup_bg         = #fcfaf6
 
 title_text           = #ff1119
-title_bg             = #242424
+title_bg             = #fcfaf6
 
-popup_text           = #fcfaf6
-popup_bg             = #242424
+popup_text           = #242424
+popup_bg             = #fcfaf6
 
 pid_text             = #7c6a6b
 pid_highlight_text   = #ff1119
-pid_selected_text    = #242424
+pid_selected_text    = #fcfaf6
 
-user_text            = #fcfaf6
+user_text            = #242424
 user_highlight_text  = #6e7fb9
-user_selected_text   = #242424
+user_selected_text   = #fcfaf6
 
 state_text           = #7c6a6b
-state_highlight_text = #fda5aa
-state_selected_text  = #242424
+state_highlight_text = #ad6283
+state_selected_text  = #fcfaf6
 
-ram_text             = #fda5aa
-ram_highlight_text   = #fcfaf6
-ram_selected_text    = #242424
+ram_text             = #ad6283
+ram_highlight_text   = #242424
+ram_selected_text    = #fcfaf6
