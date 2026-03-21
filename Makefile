@@ -136,8 +136,11 @@ $(TEST_BUILDDIR)/test_runner: $(TEST_OBJ) $(TEST_OBJ_SRC) $(DOC_OBJ_DEV) $(THEME
 	@$(CC) $(TEST_OBJ) $(TEST_OBJ_SRC) $(DOC_OBJ_DEV) $(THEME_OBJ_DEV) $(LDFLAGS) -o $@
 
 
-install: rel
+install:
 	install -Dm755 $(REL_BUILDDIR)/swordfish $(DESTDIR)$(BINDIR)/swordfish
+	install -Dm644 LICENSE $(DESTDIR)/usr/share/licenses/swordfish/LICENSE
+	install -Dm644 README.md $(DESTDIR)/usr/share/doc/swordfish/README.md
+	install -Dm644 docs/swordfish.1 $(DESTDIR)/usr/share/man/man1/swordfish.1
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/swordfish
