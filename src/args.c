@@ -20,7 +20,7 @@
 
 #define MAX_EXCLUDE_PATTERNS 16
 
-static const char *short_opts = "SFkxyvtpnwr";
+static const char *short_opts = "SFkxyvtpnwrh";
 
 static struct option long_opts[] = {
     {"sort", required_argument, NULL, LOPT_SORT},
@@ -29,7 +29,7 @@ static struct option long_opts[] = {
     {"pre-hook", required_argument, NULL, LOPT_PRE_HOOK},
     {"post-hook", required_argument, NULL, LOPT_POST_HOOK},
     {"completions", required_argument, NULL, LOPT_COMPLETIONS},
-    {"version", no_argument,       NULL, LOPT_VERSION},
+    {"version", no_argument, NULL, LOPT_VERSION},
     {"man", optional_argument, NULL, LOPT_MAN},
     {"user", required_argument, NULL, LOPT_USER},
     {"retry", required_argument, NULL, LOPT_RETRY},
@@ -141,22 +141,19 @@ static int extract_kill_signal(int *argc, char **argv, char *rewrite_buf, size_t
 int parse_args(int *argc, char **argv, swordfish_args_t *args) {
     init_args(args);
 
-    int local_argc = *argc;
-    static const char *exclude_buf[MAX_EXCLUDE_PATTERNS];
-    int exclude_count = 0;
-
     char kill_rewrite[32] = {0};
-
-    int sig = extract_kill_signal(&local_argc, argv, kill_rewrite,
-                                   sizeof(kill_rewrite));
+    int local_argc = *argc;
+    int sig = extract_kill_signal(&local_argc, argv, kill_rewrite, sizeof(kill_rewrite));
+    int exclude_count = 0;
+    static const char *exclude_buf[MAX_EXCLUDE_PATTERNS];
+    optind = 1;
+    int opt, longindex = 0;
+    
     if (sig < 0) {
         ERROR("Invalid signal specified");
         return 1;
     }
     args->sig = sig;
-
-    optind = 1;
-    int opt, longindex = 0;
 
     while ((opt = getopt_long(local_argc, argv, short_opts, long_opts, &longindex)) != -1) {
         switch (opt) {
@@ -164,7 +161,6 @@ int parse_args(int *argc, char **argv, swordfish_args_t *args) {
         // Operations
         case 'k':
             if (args->operation == SWOP_FUZZY) {
-                // -k after -F means kill on confirm without action prompt
                 args->kill_after_select = 1;
             } else if (args->operation != SWOP_STATIC) {
                 ERROR("Only one operation flag allowed");

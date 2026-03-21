@@ -16,8 +16,13 @@ int main(int arg_count, char **argv) {
     swordfish_args_t args;
     int argc = arg_count;
     int ret = parse_args(&argc, argv, &args);
-    if (args.help_topic != NULL ||
-        (argc > 1 && (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")))) {
+
+    if (strcmp(argv[1], "-h") == 0) {
+        usage(argv[0]);
+        return 0;
+    }
+
+    if (args.help_topic != NULL || (argc > 1 && (strcmp(argv[1], "--help") == 0))) {
         help(args.help_topic);
         return 0;
     }
@@ -38,7 +43,7 @@ int main(int arg_count, char **argv) {
         }
     }
 
-    /* Send warning message for empty string */
+    // Send warning message for empty string
     if (has_empty_pattern && !args.auto_confirm && is_interactive()) {
         WARN("Empty pattern specified. \nThis may match all processes and could be " COLOR_WARN
              "dangerous!" COLOR_RESET);

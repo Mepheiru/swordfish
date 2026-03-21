@@ -2,14 +2,12 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-/* Sorting modes */
 typedef enum : uint8_t {
     SWSORT_NONE = 0,
     SWSORT_RAM,
     SWSORT_AGE,
 } swordfish_sort_mode_t;
 
-/* Operations */
 typedef enum : uint8_t {
     SWOP_STATIC = 0,
     SWOP_KILL,
@@ -17,7 +15,6 @@ typedef enum : uint8_t {
     SWOP_FUZZY,
 } swordfish_op_t;
 
-/* Long opt identifiers */
 typedef enum {
     LOPT_SORT = 1000,
     LOPT_HELP = 1001,
@@ -38,7 +35,6 @@ typedef enum {
     LOPT_THEME = 1016,
 } swordfish_lopt_t;
 
-/* Main arguments struct */
 typedef struct {
     const char *sig_str;
     const char *user;

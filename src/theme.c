@@ -5,8 +5,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-// theme data
-
 extern const char _binary_themes_fihsy_swt_start[];
 extern const char _binary_themes_fihsy_swt_end[];
 extern const char _binary_themes_gruvbox_swt_start[];
