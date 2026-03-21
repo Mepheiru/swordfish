@@ -83,8 +83,6 @@ static const char *get_proc_user(uid_t uid) {
         count++;
         return uidCache[count - 1].name;
     }
-
-    /* cache full — return the looked-up name directly */
     return name;
 }
 
@@ -130,14 +128,6 @@ static void compile_patterns(const swordfish_args_t *args, pattern_list_t *plist
                              compiled_pattern_t *compiled) {
     for (int i = 0; i < plist->pattern_count; ++i) {
         const char *pat_orig = plist->patterns[i];
-
-        // Skip ?-args
-        if (pat_orig[0] == '?') {
-            compiled[i].type = PAT_SKIP;
-            compiled[i].pattern[0] = '\0';
-            continue;
-        }
-
         compiled_pattern_t *c = &compiled[i];
 
         safe_strncpy(c->pattern, pat_orig, sizeof(c->pattern) - 1);
@@ -399,8 +389,6 @@ static int find_matching_processes(const swordfish_args_t *args, pattern_list_t 
         char *after_rparen = rparen + 2;
         p.status.state = *after_rparen;
 
-        /* Avoid strtok which is not re-entrant and
-           would corrupt state if anything else in the call stack uses it */
         char *cursor = after_rparen + 2;
         int field_index = 3;
 

@@ -38,14 +38,14 @@
 #define PAIR_ROOT_NORMAL 10
 #define PAIR_ROOT_SELECTED 11
 #define PAIR_ROOT_HIGHLIGHT 25
-#define PAIR_PID_ROOT_SELECTED   26
-#define PAIR_USER_ROOT_SELECTED  27
+#define PAIR_PID_ROOT_SELECTED 26
+#define PAIR_USER_ROOT_SELECTED 27
 #define PAIR_STATE_ROOT_SELECTED 28
-#define PAIR_RAM_ROOT_SELECTED   29
-#define PAIR_PID_ROOT_HIGHLIGHT   30
-#define PAIR_USER_ROOT_HIGHLIGHT  31
+#define PAIR_RAM_ROOT_SELECTED 29
+#define PAIR_PID_ROOT_HIGHLIGHT 30
+#define PAIR_USER_ROOT_HIGHLIGHT 31
 #define PAIR_STATE_ROOT_HIGHLIGHT 32
-#define PAIR_RAM_ROOT_HIGHLIGHT   33
+#define PAIR_RAM_ROOT_HIGHLIGHT 33
 #define PAIR_PID 12
 #define PAIR_USER 13
 #define PAIR_STATE 14
@@ -117,36 +117,36 @@ static void tui_init_colors(const sw_theme_t *t) {
     init_pair(PAIR_TITLE, t->title_text, t->title_bg);
     init_pair(PAIR_POPUP, t->popup_text, t->popup_bg);
     short dp_text = t->dim_popup_text ? t->dim_popup_text : t->dim_text;
-    short dp_bg   = t->dim_popup_bg   ? t->dim_popup_bg   : t->dim_bg;
+    short dp_bg = t->dim_popup_bg ? t->dim_popup_bg : t->dim_bg;
     init_pair(PAIR_DIM_POPUP, dp_text, dp_bg);
 
-    init_pair(PAIR_ROOT_NORMAL,    t->root_text,           t->root_bg);
-    init_pair(PAIR_ROOT_SELECTED,  t->root_selection_text, t->root_selection_bg);
+    init_pair(PAIR_ROOT_NORMAL, t->root_text, t->root_bg);
+    init_pair(PAIR_ROOT_SELECTED, t->root_selection_text, t->root_selection_bg);
     init_pair(PAIR_ROOT_HIGHLIGHT, t->root_highlight_text, t->root_highlight_bg);
 
-    init_pair(PAIR_PID,   t->pid_text,   t->normal_bg);
-    init_pair(PAIR_USER,  t->user_text,  t->normal_bg);
+    init_pair(PAIR_PID, t->pid_text, t->normal_bg);
+    init_pair(PAIR_USER, t->user_text, t->normal_bg);
     init_pair(PAIR_STATE, t->state_text, t->normal_bg);
-    init_pair(PAIR_RAM,   t->ram_text,   t->normal_bg);
+    init_pair(PAIR_RAM, t->ram_text, t->normal_bg);
 
-    init_pair(PAIR_PID_SELECTED,    t->pid_selected_text,    t->selected_bg);
-    init_pair(PAIR_PID_HIGHLIGHT,   t->pid_highlight_text,   t->highlight_bg);
-    init_pair(PAIR_USER_SELECTED,   t->user_selected_text,   t->selected_bg);
-    init_pair(PAIR_USER_HIGHLIGHT,  t->user_highlight_text,  t->highlight_bg);
-    init_pair(PAIR_STATE_SELECTED,  t->state_selected_text,  t->selected_bg);
+    init_pair(PAIR_PID_SELECTED, t->pid_selected_text, t->selected_bg);
+    init_pair(PAIR_PID_HIGHLIGHT, t->pid_highlight_text, t->highlight_bg);
+    init_pair(PAIR_USER_SELECTED, t->user_selected_text, t->selected_bg);
+    init_pair(PAIR_USER_HIGHLIGHT, t->user_highlight_text, t->highlight_bg);
+    init_pair(PAIR_STATE_SELECTED, t->state_selected_text, t->selected_bg);
     init_pair(PAIR_STATE_HIGHLIGHT, t->state_highlight_text, t->highlight_bg);
-    init_pair(PAIR_RAM_SELECTED,    t->ram_selected_text,    t->selected_bg);
-    init_pair(PAIR_RAM_HIGHLIGHT,   t->ram_highlight_text,   t->highlight_bg);
+    init_pair(PAIR_RAM_SELECTED, t->ram_selected_text, t->selected_bg);
+    init_pair(PAIR_RAM_HIGHLIGHT, t->ram_highlight_text, t->highlight_bg);
 
-    init_pair(PAIR_PID_ROOT_SELECTED,   t->pid_selected_text,   t->root_selection_bg);
-    init_pair(PAIR_USER_ROOT_SELECTED,  t->user_selected_text,  t->root_selection_bg);
+    init_pair(PAIR_PID_ROOT_SELECTED, t->pid_selected_text, t->root_selection_bg);
+    init_pair(PAIR_USER_ROOT_SELECTED, t->user_selected_text, t->root_selection_bg);
     init_pair(PAIR_STATE_ROOT_SELECTED, t->state_selected_text, t->root_selection_bg);
-    init_pair(PAIR_RAM_ROOT_SELECTED,   t->ram_selected_text,   t->root_selection_bg);
+    init_pair(PAIR_RAM_ROOT_SELECTED, t->ram_selected_text, t->root_selection_bg);
 
-    init_pair(PAIR_PID_ROOT_HIGHLIGHT,   t->pid_highlight_text,   t->root_highlight_bg);
-    init_pair(PAIR_USER_ROOT_HIGHLIGHT,  t->user_highlight_text,  t->root_highlight_bg);
+    init_pair(PAIR_PID_ROOT_HIGHLIGHT, t->pid_highlight_text, t->root_highlight_bg);
+    init_pair(PAIR_USER_ROOT_HIGHLIGHT, t->user_highlight_text, t->root_highlight_bg);
     init_pair(PAIR_STATE_ROOT_HIGHLIGHT, t->state_highlight_text, t->root_highlight_bg);
-    init_pair(PAIR_RAM_ROOT_HIGHLIGHT,   t->ram_highlight_text,   t->root_highlight_bg);
+    init_pair(PAIR_RAM_ROOT_HIGHLIGHT, t->ram_highlight_text, t->root_highlight_bg);
 }
 
 static void tui_apply_theme(tui_state_t *s, const char *name) {
@@ -248,7 +248,7 @@ static void tui_rebuild_rows(tui_state_t *s) {
         s->cursor = s->row_count > 0 ? s->row_count - 1 : 0;
 
     tui_scroll_to_cursor(s);
-    s->dirty_list   = true;
+    s->dirty_list = true;
     s->dirty_status = true;
 }
 
@@ -312,19 +312,19 @@ static void tui_render_list(tui_state_t *s) {
 
         int pair_base = is_cursor ? PAIR_HIGHLIGHT : (is_selected ? PAIR_SELECTED : PAIR_NORMAL);
         if (is_root) {
-            if (is_cursor)        pair_base = PAIR_ROOT_HIGHLIGHT;
+            if (is_cursor) pair_base = PAIR_ROOT_HIGHLIGHT;
             else if (is_selected) pair_base = PAIR_ROOT_SELECTED;
-            else                  pair_base = PAIR_ROOT_NORMAL;
+            else pair_base = PAIR_ROOT_NORMAL;
         }
 
-        // sel marker - always base pair
+        // sel marker
         wattron(w, COLOR_PAIR(pair_base) | bold);
         mvwaddstr(w, row_y, 0, is_selected ? "  " : " ");
 
         // pid number
         char pid_buf[COL_PID_W + 2];
         snprintf(pid_buf, sizeof(pid_buf), "%-*d ", COL_PID_W, p->pid);
-        int pid_pair   = is_root ? (is_cursor ? PAIR_PID_ROOT_HIGHLIGHT   : (is_selected ? PAIR_PID_ROOT_SELECTED   : PAIR_PID))   : (is_cursor ? PAIR_PID_HIGHLIGHT   : (is_selected ? PAIR_PID_SELECTED   : PAIR_PID));
+        int pid_pair = is_root ? (is_cursor ? PAIR_PID_ROOT_HIGHLIGHT : (is_selected ? PAIR_PID_ROOT_SELECTED : PAIR_PID)) : (is_cursor ? PAIR_PID_HIGHLIGHT : (is_selected ? PAIR_PID_SELECTED : PAIR_PID));
         wattron(w, COLOR_PAIR(pid_pair) | bold);
         waddnstr(w, pid_buf, COL_PID_W + 1);
 
@@ -338,7 +338,7 @@ static void tui_render_list(tui_state_t *s) {
         // user
         char user_buf[COL_USER_W + 2];
         snprintf(user_buf, sizeof(user_buf), "%-*.*s ", COL_USER_W, COL_USER_W, p->owner);
-        int user_pair  = is_root ? (is_cursor ? PAIR_USER_ROOT_HIGHLIGHT  : (is_selected ? PAIR_USER_ROOT_SELECTED  : PAIR_USER))  : (is_cursor ? PAIR_USER_HIGHLIGHT  : (is_selected ? PAIR_USER_SELECTED  : PAIR_USER));
+        int user_pair = is_root ? (is_cursor ? PAIR_USER_ROOT_HIGHLIGHT : (is_selected ? PAIR_USER_ROOT_SELECTED : PAIR_USER)) : (is_cursor ? PAIR_USER_HIGHLIGHT : (is_selected ? PAIR_USER_SELECTED : PAIR_USER));
         wattron(w, COLOR_PAIR(user_pair) | bold);
         waddnstr(w, user_buf, COL_USER_W + 1);
 
@@ -354,7 +354,7 @@ static void tui_render_list(tui_state_t *s) {
         fmt_ram(ram_buf, sizeof(ram_buf), p->ram);
         char ram_col[COL_RAM_W + 1];
         snprintf(ram_col, sizeof(ram_col), "%-*.*s", COL_RAM_W, COL_RAM_W, ram_buf);
-        int ram_pair   = is_root ? (is_cursor ? PAIR_RAM_ROOT_HIGHLIGHT   : (is_selected ? PAIR_RAM_ROOT_SELECTED   : PAIR_RAM))   : (is_cursor ? PAIR_RAM_HIGHLIGHT   : (is_selected ? PAIR_RAM_SELECTED   : PAIR_RAM));
+        int ram_pair = is_root ? (is_cursor ? PAIR_RAM_ROOT_HIGHLIGHT : (is_selected ? PAIR_RAM_ROOT_SELECTED : PAIR_RAM)) : (is_cursor ? PAIR_RAM_HIGHLIGHT : (is_selected ? PAIR_RAM_SELECTED : PAIR_RAM));
         wattron(w, COLOR_PAIR(ram_pair) | bold);
         waddnstr(w, ram_col, COL_RAM_W);
 
@@ -386,6 +386,11 @@ static void tui_render_status(tui_state_t *s) {
     wattron(w, COLOR_PAIR(PAIR_STATUS) | A_BOLD);
     mvwprintw(w, 0, 0, "  %d/%d processes    %d selected",
               s->row_count, s->proc_count, sel_count);
+
+    char right[64];
+    snprintf(right, sizeof(right), "v%s  ", SWORDFISH_VERSION);
+    mvwprintw(w, 0, getmaxx(w) - (int)strlen(right), "%s", right);
+
     wclrtoeol(w);
     wattroff(w, COLOR_PAIR(PAIR_STATUS) | A_BOLD);
 
@@ -396,10 +401,10 @@ static void tui_render_confirm(tui_state_t *s) {
     int sel_count = s->selected_count;
     int n = sel_count > 0 ? sel_count : (s->row_count > 0 ? 1 : 0);
 
-    const int w_width  = 44;
+    const int w_width = 44;
     const int w_height = 5;
     int w_y = (LINES - w_height) / 2;
-    int w_x = (COLS  - w_width)  / 2;
+    int w_x = (COLS - w_width) / 2;
 
     WINDOW *popup = newwin(w_height, w_width, w_y, w_x);
     wbkgd(popup, COLOR_PAIR(PAIR_POPUP));
@@ -449,12 +454,11 @@ static void tui_render_action_prompt(tui_state_t *s) {
     const int w_height = 7;
     int w_y = (LINES - w_height) / 2;
     int w_x = (COLS - w_width) / 2;
+    int n = s->selected_count > 0 ? s->selected_count : (s->row_count > 0 ? 1 : 0);
 
     WINDOW *popup = newwin(w_height, w_width, w_y, w_x);
     wbkgd(popup, COLOR_PAIR(PAIR_POPUP));
     keypad(popup, TRUE);
-
-    int n = s->selected_count > 0 ? s->selected_count : (s->row_count > 0 ? 1 : 0);
 
     while (s->prompting_action) {
         werase(popup);
@@ -833,11 +837,13 @@ tui_result_t tui_run(const swordfish_args_t *args, const process_info_t *procs, 
             box(rpop, 0, 0);
             wattroff(rpop, COLOR_PAIR(PAIR_POPUP) | A_BOLD);
             wattron(rpop, COLOR_PAIR(PAIR_POPUP));
+
             if (failed == 0)
                 mvwprintw(rpop, 1, 2, "Sent signal %d to %d process%s",
                           result.sig, sent, sent == 1 ? "" : "es");
             else
                 mvwprintw(rpop, 1, 2, "Sent %d, failed %d (permission?)", sent, failed);
+
             wattroff(rpop, COLOR_PAIR(PAIR_POPUP));
             wattron(rpop, COLOR_PAIR(PAIR_DIM_POPUP) | A_DIM);
             mvwaddstr(rpop, 3, 2, "Press any key to exit");

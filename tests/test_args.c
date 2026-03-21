@@ -4,14 +4,8 @@
 #include <signal.h>
 #include <string.h>
 
-// suppress expected-failure stderr noise for tests that intentionally
-// pass bad input — caller should restore stderr after if needed
 #include <stdio.h>
 
-/* helpers */
-
-// builds a fresh args parse from a literal argv
-// argc is computed from the sentinel NULL — argv must be NULL-terminated
 #define PARSE(argv_arr, out) ({ \
     int _argc = 0; \
     while ((argv_arr)[_argc]) _argc++; \

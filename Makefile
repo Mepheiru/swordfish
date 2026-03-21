@@ -10,22 +10,22 @@
 CC ?= gcc
 CFLAGS_DEV ?= -Wall -Wextra -g -std=gnu11
 CFLAGS_REL ?= -Wall -Wextra -Werror -O3 -std=gnu11
-LDFLAGS ?= -lncurses
+LDFLAGS += -lncurses
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 
-DEV_BUILDDIR  = build
-REL_BUILDDIR  = build/release
+DEV_BUILDDIR = build
+REL_BUILDDIR = build/release
 TEST_BUILDDIR = build/test
 
-SRC     = src/main.c src/args.c src/process.c src/hooks.c src/help.c src/tui.c src/fuzzy.c src/theme.c
+SRC = src/main.c src/args.c src/process.c src/hooks.c src/help.c src/tui.c src/fuzzy.c src/theme.c
 HEADERS = src/args.h src/process.h src/main.h src/hooks.h src/help.h src/tui.h src/fuzzy.h src/theme.h
 
 OBJ_DEV = $(SRC:src/%.c=$(DEV_BUILDDIR)/%.o)
 OBJ_REL = $(SRC:src/%.c=$(REL_BUILDDIR)/%.o)
 
-DOCS = docs/man/help.txt docs/man/general.txt docs/man/signals.txt docs/man/filter.txt docs/man/behavior.txt docs/man/misc.txt docs/man/args.txt docs/man/perf.txt
+DOCS = $(wildcard docs/man/*.txt)
 
 DOC_OBJ_DEV = $(DOCS:docs/%.txt=$(DEV_BUILDDIR)/docs_%.o)
 DOC_OBJ_REL = $(DOCS:docs/%.txt=$(REL_BUILDDIR)/docs_%.o)
@@ -35,12 +35,10 @@ THEMES = $(wildcard themes/*.swt)
 THEME_OBJ_DEV = $(THEMES:themes/%.swt=$(DEV_BUILDDIR)/themes_%.o)
 THEME_OBJ_REL = $(THEMES:themes/%.swt=$(REL_BUILDDIR)/themes_%.o)
 
-TEST_SRC     = tests/main.c tests/test_fuzzy.c tests/test_args.c
-TEST_OBJ     = $(TEST_SRC:tests/%.c=$(TEST_BUILDDIR)/%.o)
-# all dev objects except main.o — the test runner supplies its own main
+TEST_SRC = $(wildcard tests/*.c)
+TEST_OBJ = $(TEST_SRC:tests/%.c=$(TEST_BUILDDIR)/%.o)
 TEST_OBJ_SRC = $(filter-out $(DEV_BUILDDIR)/main.o, $(OBJ_DEV))
 
-# Progress tracking — +2 for linking and doc generation, +1 for rivulet.png
 TOTAL = $(shell echo $$(($(words $(SRC)) + $(words $(DOCS)) + $(words $(THEMES)) + 1 + 2)))
 WIDTH = $(shell echo $$((${TOTAL}<10?1:${TOTAL}<100?2:3)))
 

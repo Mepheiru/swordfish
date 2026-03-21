@@ -7,8 +7,6 @@
 #include <unistd.h>
 #include <pwd.h>
 
-// inline asm operand constraints require an addressable lvalue,
-// which a function parameter doesn't guarantee at every call site
 #if defined(__x86_64__)
 #  define PREFETCH(p) __asm__ volatile("prefetcht0 %0"::"m"(*(const char*)(p)))
 #else
@@ -42,8 +40,7 @@ static void init_groups(void) {
 
 static bool is_word_boundary(const char *s) {
     char prev = *(s - 1);
-    return prev == '_' || prev == '-' || prev == ' ' ||
-           (to_lower(prev) != prev && to_lower(*s) == *s);
+    return prev == '_' || prev == '-' || prev == ' ' || (to_lower(prev) != prev && to_lower(*s) == *s);
 }
 
 static bool chars_similar(char a, char b) {
